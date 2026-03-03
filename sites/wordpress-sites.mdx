@@ -1,0 +1,465 @@
+---
+title: WordPress Sites
+description: WordPress-specific features including caching, multisite conversion, cloning, and content management
+---
+
+Webinoly provides advanced WordPress management features beyond basic installation, including FastCGI caching, multisite conversion, site cloning, and database management.
+
+## FastCGI Cache for WordPress
+
+FastCGI cache dramatically improves WordPress performance by caching PHP responses at the NGINX level.
+
+### Enable Cache
+
+<Steps>
+  <Step title="Activate FastCGI Cache">
+    Enable caching for an existing WordPress site:
+    
+    ```bash
+    sudo site example.com -cache=on
+    ```
+  </Step>
+  
+  <Step title="Install Cache Plugins">
+    Webinoly automatically installs recommended plugins:
+    
+    - **Nginx Helper** - Purges cache when content changes
+    - **Redis Object Cache** - Database query caching
+    
+    Activate and configure these plugins in WordPress admin.
+  </Step>
+  
+  <Step title="Configure Nginx Helper">
+    In WordPress admin, go to **Settings > Nginx Helper**:
+    
+    - Set **Caching Method** to "Nginx FastCgi Cache"
+    - Set **Purge Method** to "Delete local server cache file"
+    - Enable cache purging on post/page updates
+  </Step>
+</Steps>
+
+### Disable Cache
+
+Turn off FastCGI cache:
+
+```bash
+sudo site example.com -cache=off
+```
+
+### Cache for Subfolders
+
+Enable caching for WordPress in a subfolder:
+
+```bash
+sudo site example.com -cache=on -subfolder=/blog
+```
+
+### Skip Cache Plugins Installation
+
+Enable cache without installing plugins:
+
+```bash
+sudo site example.com -cache=on -wp-cache-plugins=off
+```
+
+## Advanced Cache Configuration
+
+Webinoly supports fine-grained cache control:
+
+### Custom Cache Validity
+
+Set custom cache expiration time:
+
+```bash
+sudo site example.com -cache=on -cache-valid=60m
+```
+
+Valid time formats:
+- `s` - seconds
+- `m` - minutes
+- `h` - hours
+- `d` - days
+
+Example: `30m`, `2h`, `1d`
+
+### Query String Cache Control
+
+<Tabs>
+  <Tab title="Enable Query String Cache">
+    Cache pages with query strings:
+    
+    ```bash
+    sudo site example.com -query-string-cache=on
+    ```
+    
+    Each unique query string creates a separate cache entry.
+  </Tab>
+  
+  <Tab title="Never Cache Specific Query Strings">
+    Prevent caching for specific query parameters:
+    
+    ```bash
+    sudo site example.com -query-string-never-cache=utm_source,utm_medium
+    ```
+    
+    Useful for marketing parameters that shouldn't affect cache.
+  </Tab>
+  
+  <Tab title="Reset to Default">
+    Return to default query string cache behavior:
+    
+    ```bash
+    sudo site example.com -query-string-cache-default
+    ```
+  </Tab>
+</Tabs>
+
+### Skip Cache Rules
+
+Exclude specific paths from caching:
+
+```bash
+sudo site example.com -skip-cache=/checkout,/cart,/my-account
+```
+
+### Cookie-Based Cache Control
+
+Skip cache based on specific cookies:
+
+```bash
+sudo site example.com -skip-cookie-cache=user_id,session_token
+```
+
+## WordPress Multisite Conversion
+
+Convert a WordPress single-site installation to multisite.
+
+<Warning>
+  - Site must be a working WordPress installation
+  - Parked sites cannot be converted to multisite
+  - Backup your site before conversion
+  - Multisite sites cannot be cloned
+</Warning>
+
+### Convert to Multisite
+
+```bash
+sudo site example.com -multisite-convert
+```
+
+<CodeGroup>
+```bash Subdomain Multisite
+sudo site example.com -multisite-convert=subdomain
+```
+
+```bash Subdirectory Multisite
+sudo site example.com -multisite-convert=subdirectory
+```
+</CodeGroup>
+
+### Multisite with Domain Mapping
+
+For subdirectory multisite with custom domain mapping:
+
+```bash
+sudo site example.com -multisite-convert=subdirectory -domain-mapping-wp-id=2
+```
+
+This configures the multisite to support custom domains for network sites.
+
+## Cloning Sites
+
+Create a copy of an existing site for staging or testing.
+
+<Steps>
+  <Step title="Clone a Site">
+    Clone a site to a new domain:
+    
+    ```bash
+    sudo site staging.example.com -clone-from=example.com
+    ```
+    
+    This copies:
+    - All site files
+    - WordPress database (if WP site)
+    - NGINX configuration
+    - Cache settings
+  </Step>
+  
+  <Step title="Update URLs">
+    For WordPress sites, database URLs are automatically updated to the new domain.
+  </Step>
+  
+  <Step title="Verify Clone">
+    Visit the new domain to verify the cloned site works correctly.
+  </Step>
+</Steps>
+
+### Clone to Subfolder
+
+Clone a site to a subfolder:
+
+```bash
+sudo site example.com -clone-from=production.com -subfolder=/staging
+```
+
+### Clone from Subfolder
+
+Clone a subfolder site to a new location:
+
+```bash
+sudo site staging.example.com -clone-from=example.com -subfolder=/blog
+```
+
+### Overwrite Existing Site
+
+Overwrite an existing site with cloned content:
+
+```bash
+sudo site example.com -clone-from=source.com -overwrite=on
+```
+
+<Warning>
+  - Both source and destination sites must be the same type (HTML, PHP, or WordPress)
+  - WordPress multisite cannot be cloned
+  - Clone overwrites all existing files and database
+  - Always backup before using `-overwrite=on`
+</Warning>
+
+## Replace Content (Search & Replace)
+
+Search and replace content in WordPress database and files.
+
+```bash
+sudo site example.com -replace-content="old-domain.com,new-domain.com"
+```
+
+### Replace in Subfolder Site
+
+```bash
+sudo site example.com -replace-content="old,new" -subfolder=/blog
+```
+
+### Use Cases
+
+- Changing domain names
+- Updating URLs after migration
+- Replacing hardcoded paths
+- Fixing serialized data
+
+<Warning>
+  - Always backup your database before search & replace
+  - This operation affects the entire WordPress database
+  - Serialized data is properly handled
+  - Only works with WordPress sites
+</Warning>
+
+## WordPress Environment Types
+
+Set the WordPress environment type for different configurations.
+
+```bash
+sudo site example.com -env=staging
+```
+
+<Tabs>
+  <Tab title="Production">
+    ```bash
+    sudo site example.com -env=production
+    ```
+    
+    - Optimized for performance
+    - Minimal error reporting
+    - Recommended for live sites
+  </Tab>
+  
+  <Tab title="Staging">
+    ```bash
+    sudo site example.com -env=staging
+    ```
+    
+    - Pre-production testing
+    - Moderate error reporting
+    - For QA and testing
+  </Tab>
+  
+  <Tab title="Development">
+    ```bash
+    sudo site example.com -env=development
+    ```
+    
+    - Full error reporting
+    - Debug mode enabled
+    - For active development
+  </Tab>
+  
+  <Tab title="Local">
+    ```bash
+    sudo site example.com -env=local
+    ```
+    
+    - Local development
+    - Maximum verbosity
+    - For localhost testing
+  </Tab>
+</Tabs>
+
+### Environment with Subfolder
+
+```bash
+sudo site example.com -env=development -subfolder=/beta
+```
+
+## WordPress Configuration
+
+### wp-config.php Automatic Setup
+
+When creating WordPress sites, Webinoly automatically configures:
+
+- Database credentials
+- Security keys and salts (64-character random strings)
+- Table prefix
+- Redis cache configuration
+- Environment-specific settings
+
+Configuration file location:
+- Main site: `/var/www/example.com/wp-config.php`
+- Subfolder: `/var/www/example.com/htdocs/subfolder/wp-config.php`
+
+### Redis Configuration
+
+Webinoly automatically adds Redis configuration to `wp-config.php`:
+
+```php
+define('WP_REDIS_SELECTIVE_FLUSH', true);
+define('WP_CACHE_KEY_SALT', 'wp_example_com');
+```
+
+## WordPress Security Features
+
+Webinoly includes WordPress-specific security configurations:
+
+### wp-admin Protection
+
+- HTTP authentication enabled by default
+- Rate limiting on admin-ajax.php
+- Access control lists (ACL) for admin area
+
+### Disable wp-admin Auth
+
+```bash
+sudo httpauth example.com -wp-admin=off
+```
+
+### XML-RPC Protection
+
+XML-RPC is blocked by default to prevent:
+- Brute force attacks
+- DDoS amplification
+- Pingback spam
+
+Location block (automatically applied):
+
+```nginx
+location = /xmlrpc.php {
+    return 403;
+}
+```
+
+### Upload Directory Protection
+
+PHP execution is disabled in the uploads directory:
+
+```nginx
+location /wp-content/uploads/ {
+    location ~* \.php$ {
+        deny all;
+    }
+}
+```
+
+## WordPress Site Information
+
+Get detailed information about a WordPress site:
+
+```bash
+sudo site example.com -info
+```
+
+Displays:
+- Site type (HTML, PHP, WordPress)
+- WordPress version (if applicable)
+- Database connection details
+- Multisite status
+- Cache status
+- SSL status
+- Environment type
+
+### Subfolder Site Info
+
+```bash
+sudo site example.com -info -subfolder=/blog
+```
+
+## Database Management
+
+### Database Roles and Privileges
+
+Set custom database privileges:
+
+```bash
+sudo site example.com -wp -db-role=limited
+```
+
+Available roles:
+- `all` - Full database privileges (includes GRANT)
+- `grant` - Standard privileges with GRANT option
+- `limited` - Standard privileges without GRANT
+
+### External Database Support
+
+Webinoly saves external database credentials for reuse:
+
+```bash
+# First site with external DB
+sudo site site1.com -wp=[true,true,db.host:3306,db1,user1,pass1,wp_,root,rootpass]
+
+# Subsequent sites automatically use saved credentials
+sudo site site2.com -wp=true
+```
+
+<Warning>
+  Some external database services (AWS RDS, Google Cloud SQL) may not support all privilege grants. Use `-db-role=limited` for compatibility.
+</Warning>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Performance" icon="gauge-high">
+    - Enable FastCGI cache for production sites
+    - Use Redis Object Cache for database queries
+    - Set appropriate cache validity times
+    - Monitor cache hit rates
+  </Card>
+  
+  <Card title="Security" icon="shield">
+    - Keep wp-admin authentication enabled
+    - Use strong database passwords
+    - Regularly update WordPress core and plugins
+    - Enable SSL certificates
+  </Card>
+  
+  <Card title="Development" icon="code">
+    - Use environment types appropriately
+    - Clone sites for staging/testing
+    - Keep production and development separate
+    - Test updates on staging first
+  </Card>
+  
+  <Card title="Maintenance" icon="wrench">
+    - Regular backups before major changes
+    - Monitor error logs
+    - Test multisite conversion on clones
+    - Document custom configurations
+  </Card>
+</CardGroup>

@@ -1,0 +1,396 @@
+---
+title: Log Monitoring and Management  
+description: View, manage, and analyze Nginx, PHP, MySQL, and WordPress logs
+---
+
+Webinoly provides comprehensive logging capabilities for monitoring your web server, applications, and services. This guide covers all log types and management options.
+
+## View Logs in Real-Time
+
+### Access Logs
+
+View Nginx access logs:
+
+```bash
+# Global access log
+sudo log
+
+# Specific site access log
+sudo log example.com
+```
+
+### Error Logs
+
+```bash
+# Global error logs
+sudo log -error
+
+# Site-specific error logs
+sudo log example.com -error
+```
+
+### Custom Line Count
+
+Control how many lines to display:
+
+```bash
+# Show last 50 lines
+sudo log example.com -lines=50
+
+# Default is 10 lines (configurable)
+```
+
+<Tip>
+Set a custom default line count: `sudo webinoly -config=log-lines:25`
+</Tip>
+
+## WordPress Debug Logs
+
+### Enable WordPress Debug Mode
+
+```bash
+# Enable debug logging
+sudo log example.com -wp=on
+
+# Disable display of errors (log only)
+sudo log example.com -wp=on -display=off
+```
+
+This modifies `wp-config.php` to enable:
+- `WP_DEBUG` - Enable debug mode
+- `WP_DEBUG_LOG` - Log to `wp-content/debug.log`
+- `WP_DEBUG_DISPLAY` - Display errors on screen
+
+### Disable WordPress Debug Mode
+
+```bash
+sudo log example.com -wp=off
+```
+
+### View WordPress Debug Log
+
+```bash
+# View debug.log in real-time
+sudo log example.com -wp
+```
+
+Log location: `/var/www/example.com/htdocs/wp-content/debug.log`
+
+### WordPress Subfolder Support
+
+```bash
+sudo log example.com -wp=on -subfolder=/blog
+sudo log example.com -wp -subfolder=/blog
+```
+
+<Warning>
+Disable debug mode in production environments to prevent sensitive information exposure.
+</Warning>
+
+## PHP-FPM Logs
+
+Monitor PHP errors and warnings:
+
+```bash
+sudo log -php
+# or
+sudo log -fpm
+```
+
+Log location: `/var/log/php[version]-fpm.log`
+
+## MySQL/MariaDB Logs
+
+### Error Log
+
+```bash
+sudo log -mysql=error
+```
+
+### General Query Log
+
+Enable and view all database queries:
+
+```bash
+# Enable general log
+sudo log -mysql=general -enable
+
+# View general log
+sudo log -mysql=general
+
+# Disable general log
+sudo log -mysql=general -disable
+```
+
+<Warning>
+General query log impacts performance. Use only for debugging and disable when done.
+</Warning>
+
+### Slow Query Log
+
+Identify slow database queries:
+
+```bash
+# Enable slow query log (default threshold: 10s)
+sudo log -mysql=slow -enable
+
+# Enable with custom threshold (5 seconds)
+sudo log -mysql=slow -enable -long-query-time=5
+
+# View slow queries
+sudo log -mysql=slow
+
+# Disable slow query log
+sudo log -mysql=slow -disable
+```
+
+### Binary Log
+
+For database replication and point-in-time recovery:
+
+```bash
+# Enable binary logging
+sudo log -mysql=binary -enable
+
+# Set log expiration (30 days)
+sudo log -mysql=binary -enable -expire-logs=2592000
+
+# View binary log
+sudo log -mysql=binary
+
+# Disable binary logging
+sudo log -mysql=binary -disable
+```
+
+## SSL/TLS Logs (Let's Encrypt)
+
+View certificate generation and renewal logs:
+
+```bash
+sudo log -le
+```
+
+Log location: `/var/log/letsencrypt/letsencrypt.log`
+
+## Email/SMTP Logs
+
+Monitor Postfix mail server logs:
+
+```bash
+sudo log -mail
+# or
+sudo log -email
+```
+
+Views both:
+- `/var/log/mail.log` - General mail log
+- `/var/log/mail.err` - Mail errors
+
+## SSH Authentication Logs
+
+Monitor SSH access attempts:
+
+```bash
+sudo log -ssh
+# or  
+sudo log -auth
+```
+
+Log location: `/var/log/auth.log`
+
+## System Logs
+
+View general system logs:
+
+```bash
+sudo log -syslog
+```
+
+## Access Log Management
+
+### Disable Access Logs
+
+```bash
+# Disable globally
+sudo log -access-log=off
+
+# Disable for specific site
+sudo log example.com -access-log=off
+```
+
+### Enable Access Logs
+
+```bash
+# Enable globally
+sudo log -access-log=on
+
+# Enable for specific site
+sudo log example.com -access-log=on
+```
+
+### Buffer and Flush Settings
+
+Optimize logging performance:
+
+```bash
+# Enable with buffer (32KB) and flush (5 minutes)
+sudo log -access-log=on -buffer=[32,5]
+
+# For high-traffic sites
+sudo log example.com -access-log=on -buffer=[64,10]
+```
+
+Format: `-buffer=[size_in_KB,flush_time_in_minutes]`
+
+<Tip>
+Buffering reduces disk I/O but may delay log visibility. Adjust based on traffic and monitoring needs.
+</Tip>
+
+## Purge Old Logs
+
+Remove compressed log archives:
+
+```bash
+# Purge all GZ log files
+sudo log -purge=all
+
+# Purge specific service logs
+sudo log -purge=nginx
+sudo log -purge=mysql
+sudo log -purge=letsencrypt
+sudo log -purge=redis
+
+# Purge systemd journal (keep last 7 days)
+sudo log -purge=journal
+
+# Force purge without confirmation
+sudo log -purge=all -delete-all=force
+```
+
+<Warning>
+Purge operations permanently delete compressed logs. Ensure backups exist before purging.
+</Warning>
+
+## Log File Locations
+
+**Nginx**:
+- Global access: `/var/log/nginx/access.log`
+- Global error: `/var/log/nginx/error.log`  
+- Site access: `/var/log/nginx/[domain].access.log`
+- Site error: `/var/log/nginx/[domain].error.log`
+
+**PHP-FPM**:
+- `/var/log/php/[version]-fpm.log`
+
+**MySQL/MariaDB**:
+- Error: `/var/log/mysql/error.log`
+- General: `/var/log/mysql/mysql.log`
+- Slow query: `/var/log/mysql/mariadb-slow.log`
+- Binary: `/var/log/mysql/mariadb-bin*`
+
+**WordPress**:
+- Debug: `/var/www/[domain]/htdocs/wp-content/debug.log`
+
+**SSL/Let's Encrypt**:
+- `/var/log/letsencrypt/letsencrypt.log`
+
+**Mail/SMTP**:
+- `/var/log/mail.log`
+- `/var/log/mail.err`
+
+**System**:
+- Auth: `/var/log/auth.log`
+- Syslog: `/var/log/syslog`
+
+## Log Analysis
+
+### Common Patterns
+
+```bash
+# Count 404 errors
+grep " 404 " /var/log/nginx/example.com.access.log | wc -l
+
+# Top 10 IP addresses
+awk '{print $1}' /var/log/nginx/example.com.access.log | sort | uniq -c | sort -nr | head -10
+
+# Check for WordPress login attempts
+grep "wp-login.php" /var/log/nginx/example.com.access.log
+
+# Find slow PHP requests
+grep "max-execution-time" /var/log/php/8.3-fpm.log
+```
+
+### Monitor Cache Performance
+
+```bash
+# Check cache hit ratio
+grep -o "X-Cache: [A-Z]*" /var/log/nginx/example.com.access.log | sort | uniq -c
+```
+
+## Automated Monitoring
+
+### Log Rotation
+
+Webinoly uses Ubuntu's `logrotate` for automatic log rotation:
+
+```bash
+# View logrotate configuration
+cat /etc/logrotate.d/nginx
+cat /etc/logrotate.d/mysql-server
+```
+
+### Real-Time Alerts
+
+Monitor logs for specific patterns:
+
+```bash
+# Alert on 500 errors
+sudo log example.com -error | grep " 500 " --line-buffered | while read line; do
+  echo "ERROR: $line" | mail -s "500 Error Alert" admin@example.com
+done
+```
+
+## Troubleshooting
+
+### Log Not Found
+
+If logs are empty or missing:
+
+1. Check if logging is enabled:
+   ```bash
+   grep "access_log" /etc/nginx/sites-available/example.com
+   ```
+
+2. Verify permissions:
+   ```bash
+   ls -la /var/log/nginx/
+   ```
+
+3. Test Nginx configuration:
+   ```bash
+   sudo nginx -t
+   ```
+
+### High Disk Usage
+
+If logs consume too much space:
+
+```bash
+# Check log sizes
+sudo du -sh /var/log/nginx/*
+
+# Purge old compressed logs
+sudo log -purge=all
+
+# Adjust logrotate settings
+sudo nano /etc/logrotate.d/nginx
+```
+
+## Best Practices
+
+1. **Regular Monitoring**: Check logs daily for errors and anomalies
+2. **Log Retention**: Keep 30-90 days of logs, purge older archives
+3. **Performance Impact**: Disable access logs for high-traffic sites or use buffering
+4. **Security**: Monitor auth logs for unauthorized access attempts
+5. **Debug Sparingly**: Enable WordPress and MySQL debug logs only when troubleshooting
+6. **Centralization**: Consider shipping logs to a central logging service for analysis

@@ -1,0 +1,447 @@
+---
+title: Updating Webinoly
+description: Keep your Webinoly installation and server stack up to date
+---
+
+## Overview
+
+Webinoly provides automatic update capabilities for both the application itself and the underlying server stack (NGINX, PHP, MySQL/MariaDB).
+
+## Update Webinoly
+
+### Check for Updates
+
+Before updating, check if a new version is available:
+
+```bash
+webinoly -version
+```
+
+This displays:
+- Current Webinoly version
+- Installed stack version
+- Available stack version (if newer)
+
+### Standard Update
+
+Update to the latest stable version:
+
+```bash
+sudo webinoly -update
+```
+
+**What happens during update:**
+
+1. Webinoly checks for the latest version via API
+2. Downloads the new version from official repository
+3. Runs migration scripts for version upgrades
+4. Updates configuration files
+5. Resets server configuration to latest optimized settings
+6. Verifies installation integrity
+
+<Warning>
+The update process will reset server configurations to default optimized settings. Custom manual changes may be overwritten.
+</Warning>
+
+### Update from Specific Version
+
+Downgrade or upgrade to a specific version:
+
+```bash
+# Downgrade to specific version
+sudo webinoly -update=1.20.0
+
+# Note: Beta/alpha versions cannot be updated to stable
+```
+
+### Update from Branch
+
+Install from development branch:
+
+```bash
+# Beta branch
+sudo webinoly -update=beta
+
+# Alpha branch
+sudo webinoly -update=alpha
+```
+
+<Warning>
+Beta and alpha versions are for testing only. Do not use in production. Once on beta/alpha, you cannot update back to stable.
+</Warning>
+
+## Update Server Stack
+
+Update the underlying LEMP stack components:
+
+```bash
+sudo stack -update
+```
+
+**This updates:**
+- NGINX to latest version
+- PHP to latest version
+- MySQL/MariaDB to latest version
+- System packages
+- Dependencies
+
+<Warning>
+Stack updates may require server reconfiguration and can cause temporary downtime. Always backup before updating.
+</Warning>
+
+## What Gets Updated
+
+### Webinoly Application
+
+**Updated components:**
+- Core Webinoly scripts (`/opt/webinoly/`)
+- Command-line tools (`webinoly`, `site`, `stack`, `httpauth`, `log`)
+- Configuration templates
+- Library functions
+- Helper scripts
+
+**Preserved data:**
+- Site files and databases
+- SSL certificates
+- User configurations
+- Backup profiles
+- Custom site configurations
+
+### Server Stack Components
+
+**NGINX:**
+- Binary and modules
+- Configuration files (regenerated with optimizations)
+- Common configuration includes
+
+**PHP:**
+- PHP-FPM and CLI
+- PHP extensions
+- Configuration files (regenerated with optimizations)
+- Pool configurations
+
+**MySQL/MariaDB:**
+- Server binaries
+- Configuration files (optimizations applied)
+- No data changes
+
+**Tools:**
+- Certbot (Let's Encrypt client)
+- Duplicity and Duply (backup tools)
+- Redis server
+- Memcached
+- Postfix
+- phpMyAdmin
+
+## Update Process Details
+
+### Pre-Update Steps
+
+1. **Backup Configuration**: Webinoly automatically creates a backup:
+   ```bash
+   ~/.webinoly-conf-restore_dont-remove
+   ```
+
+2. **Version Validation**: Checks current and target versions
+
+3. **API Check**: Verifies latest available version
+
+### During Update
+
+1. **Download**: Fetches update script from official repository
+
+2. **Migration**: Runs version-specific migration scripts:
+   - Updates configuration format
+   - Migrates deprecated settings
+   - Updates system dependencies
+   - Regenerates configuration files
+
+3. **Service Management**: Automatically handles service restarts
+
+4. **Verification**: Runs integrity checks after update
+
+### Post-Update
+
+After updating, Webinoly automatically:
+
+1. Resets server configuration (see below)
+2. Verifies installation
+3. Shows update completion message
+
+## Migration Versions
+
+Webinoly handles migrations automatically between versions:
+
+### Major Version Migrations
+
+**v1.5.0** - phpMyAdmin Update
+- Removes old phpMyAdmin installation
+- Installs newer phpMyAdmin version
+- Updates Let's Encrypt integration
+
+**v1.6.0** - Additional Tools
+- Adds zip utility
+
+**v1.7.0** - Configuration Updates
+- Removes deprecated "ssl on" directive
+- Updates swappiness configuration
+- Backs up default NGINX file
+
+**v1.9.0** - ACL and Auth Updates
+- Creates apps.d directory
+- Updates ACL configuration
+- Adds HTTP authentication support
+
+**v1.12.0** - FastCGI and Debug Updates
+- Updates FastCGI parameters
+- Removes debug pool configuration
+- Updates admin tools structure
+
+**v1.14.0** - NGINX Repository Change
+- Switches to official NGINX repository
+- Updates package signing keys
+- Migrates from PPA to official repo
+
+**v1.16.0** - Certbot Snap Migration
+- Removes Certbot from apt
+- Installs Certbot via snap
+- Updates SSL renewal configuration
+
+**v1.17.0** - Configuration Headers
+- Migrates header configurations
+- Updates site includes
+- Renames admin tools folder
+
+**v1.18.0** - HTTP/3 Support
+- Enables HTTP/3 for SSL sites
+- Updates NGINX keys
+
+**v1.18.3** - Backup Updates
+- Updates boto3 for S3 backups on Ubuntu 24.04
+
+**v1.18.4** - MariaDB Repository Fix
+- Updates MariaDB repository configuration
+
+**v1.20.0** - Configuration File
+- Regenerates configuration file format
+
+## Update Verification
+
+After updating, verify the installation:
+
+```bash
+# Quick verification
+webinoly -verify=critical
+
+# Full verification
+webinoly -verify
+
+# Check version
+webinoly -version
+
+# View system info
+webinoly -info
+```
+
+## Update Failures
+
+### If Update Fails
+
+If an update fails mid-process:
+
+1. **Check error message**: Read the error output carefully
+
+2. **Review logs**:
+   ```bash
+   sudo tail -f /var/log/syslog
+   ```
+
+3. **Restore configuration** (if needed):
+   ```bash
+   sudo tar -xf ~/.webinoly-conf-restore_dont-remove -C /
+   ```
+
+4. **Re-run update**:
+   ```bash
+   sudo webinoly -update
+   ```
+
+5. **Manual recovery**:
+   ```bash
+   # Verify installation
+   webinoly -verify
+   
+   # Reset configuration
+   webinoly -server-reset=all
+   ```
+
+### Common Update Issues
+
+**API Unavailable**
+- Check internet connectivity
+- Retry after a few minutes
+- Use specific version: `sudo webinoly -update=1.20.0`
+
+**Disk Space**
+- Free up disk space before updating
+- Remove old packages: `sudo apt clean`
+
+**Snap Installation Fails** (Certbot)
+- Check snap is installed: `snap version`
+- Manually install: `sudo snap install --classic certbot`
+
+**Version Mismatch**
+- Regenerate config: `webinoly -server-reset=confile`
+- Run verification: `webinoly -verify`
+
+## Update Schedule
+
+### Recommended Update Frequency
+
+**Webinoly:**
+- Check monthly for updates
+- Apply security updates immediately
+- Review changelog before major version updates
+
+**Server Stack:**
+- Update quarterly or as needed
+- Apply security patches promptly
+- Test in staging environment first
+
+**Operating System:**
+- Apply security updates weekly
+- Check for updates:
+  ```bash
+  sudo apt update
+  sudo apt list --upgradable
+  ```
+
+## Rollback
+
+### Emergency Rollback
+
+If an update causes critical issues:
+
+<Warning>
+Rollback should be used only in emergency situations. Always try to fix issues first.
+</Warning>
+
+1. **Restore configuration**:
+   ```bash
+   sudo tar -xf ~/.webinoly-conf-restore_dont-remove -C /
+   ```
+
+2. **Downgrade packages** (if needed):
+   ```bash
+   # Check available versions
+   apt-cache policy nginx
+   
+   # Install specific version
+   sudo apt install nginx=1.24.0-1~jammy
+   ```
+
+3. **Verify installation**:
+   ```bash
+   webinoly -verify
+   ```
+
+## Best Practices
+
+### Before Updating
+
+1. **Backup Everything**:
+   ```bash
+   # Backup sites and databases
+   webinoly -backup=local -export
+   
+   # Backup configuration
+   sudo tar -czf ~/webinoly-backup.tar.gz /opt/webinoly /etc/nginx /etc/php
+   ```
+
+2. **Note Current Versions**:
+   ```bash
+   webinoly -version
+   webinoly -info
+   ```
+
+3. **Check Changelog**: Review changes in new version
+
+4. **Schedule Maintenance Window**: Plan for potential downtime
+
+5. **Inform Users**: Notify about maintenance
+
+### During Update
+
+1. **Monitor Progress**: Watch for errors
+2. **Don't Interrupt**: Let update complete
+3. **Save Output**: Keep terminal output for reference
+
+### After Update
+
+1. **Run Verification**:
+   ```bash
+   webinoly -verify
+   ```
+
+2. **Test Sites**: Check all sites are working
+
+3. **Review Configurations**: Check for reset settings
+
+4. **Check Logs**: Look for errors
+   ```bash
+   sudo tail -f /var/log/nginx/error.log
+   sudo tail -f /var/log/syslog
+   ```
+
+5. **Update Documentation**: Note any manual changes needed
+
+## Automatic Updates
+
+Webinoly does not automatically update itself. You must manually run updates.
+
+### Why Manual Updates?
+
+- Gives you control over update timing
+- Allows review of changes before applying
+- Prevents unexpected breaking changes
+- Enables proper backup before updates
+
+### Optional Automation
+
+If you want automated updates (not recommended for production):
+
+```bash
+# Create cron job (use with caution)
+echo "0 3 * * 0 root /usr/bin/webinoly -update" | sudo tee -a /etc/crontab
+```
+
+<Warning>
+Automated updates can cause downtime and break configurations. Only use in development environments.
+</Warning>
+
+## Update External Sources
+
+Update external data sources (domain lists, timezones):
+
+```bash
+webinoly -external-sources-update
+```
+
+This updates:
+- Public Suffix List (for domain validation)
+- Timezone Database (for PHP timezone support)
+
+## Stay Informed
+
+**Keep track of updates:**
+
+- GitHub Releases: https://github.com/QROkes/webinoly/releases
+- Changelog: Review changes before updating
+- Community: Join discussions about updates
+- Newsletter: Subscribe for update notifications
+
+## Next Steps
+
+- [Troubleshooting](/operations/troubleshooting) - Fix update issues
+- [Server Management](/operations/server-management) - Configure updated server
+- [Verify Installation](/operations/troubleshooting#verify-installation) - Check update success

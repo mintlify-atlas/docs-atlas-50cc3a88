@@ -1,0 +1,557 @@
+---
+title: "stack Command"
+description: "Install, configure, and manage your server stack components including Nginx, PHP, MySQL/MariaDB, and additional tools"
+---
+
+## Overview
+
+The `stack` command manages your server's software stack. Install and remove components like Nginx, PHP, MySQL/MariaDB, and various tools with a single command.
+
+## Basic Usage
+
+```bash
+sudo stack <option> <arguments>
+```
+
+## Installing Components
+
+### Nginx (HTML)
+
+Install Nginx web server:
+
+```bash
+sudo stack -nginx
+```
+
+Alternative:
+```bash
+sudo stack -html
+```
+
+Both commands install the same Nginx package.
+
+### PHP
+
+Install PHP with Nginx:
+
+```bash
+# Install PHP + Nginx (prompts if Nginx not installed)
+sudo stack -php
+
+# Install PHP only (Nginx already installed)
+sudo stack -php
+
+# Install PHP + Nginx (no prompts)
+sudo stack -php=nginx
+```
+
+### MySQL/MariaDB
+
+Install MySQL or MariaDB database server:
+
+```bash
+# Install MySQL/MariaDB
+sudo stack -mysql
+
+# Install MySQL/MariaDB client only
+sudo stack -mysql=client
+```
+
+<Note>
+  The database engine (MySQL vs MariaDB) is determined by the `db-engine` configuration. Default is MariaDB.
+</Note>
+
+### LEMP Stack
+
+Install complete LEMP stack (Linux, Nginx, MySQL/MariaDB, PHP):
+
+```bash
+sudo stack -lemp
+```
+
+This installs Nginx, PHP, and MySQL/MariaDB in one command.
+
+<Warning>
+  ARM processors are not supported by MySQL. MariaDB will be used instead on ARM systems.
+</Warning>
+
+## Build Profiles
+
+Control which additional packages are installed:
+
+```bash
+# Light build (minimal packages)
+sudo stack -nginx -build=light
+sudo stack -php -build=light
+sudo stack -mysql -build=light
+
+# Basic build (common tools)
+sudo stack -php -build=basic
+```
+
+<ParamField path="-build" type="string">
+  Installation profile:
+  - `light` - Minimal installation (core components only)
+  - `basic` - Standard installation (includes common tools)
+  - (default) - Full installation (all recommended packages)
+</ParamField>
+
+## Additional Tools
+
+### Let's Encrypt
+
+Install SSL certificate management:
+
+```bash
+sudo stack -letsencrypt
+```
+
+Installs Certbot for automated SSL certificate management.
+
+### Backup Tools
+
+Install backup utilities (Duplicity and Duply):
+
+```bash
+sudo stack -backups
+```
+
+Enables local and S3 backup functionality.
+
+### Postfix (Mail Server)
+
+Install Postfix mail server:
+
+```bash
+sudo stack -postfix
+```
+
+Required for sending emails from PHP applications.
+
+### Redis (Object Cache)
+
+Install Redis with PHP extension:
+
+```bash
+sudo stack -redis
+```
+
+Useful for WordPress object caching and session storage.
+
+### Memcached (Object Cache)
+
+Install Memcached with PHP extension:
+
+```bash
+sudo stack -memcached
+```
+
+Alternative to Redis for object caching.
+
+### phpMyAdmin
+
+Install phpMyAdmin database management interface:
+
+```bash
+sudo stack -pma
+```
+
+<Note>
+  Requires both Nginx and PHP to be installed. Accessible via tools site (default: https://server-ip:22222)
+</Note>
+
+## Removing Components
+
+Use the `-purge` argument to remove installed components.
+
+### Remove Nginx
+
+```bash
+# Remove Nginx (prompts for confirmation)
+sudo stack -nginx -purge
+
+# Remove without confirmation
+sudo stack -nginx -purge=force
+
+# Remove but keep data and configuration
+sudo stack -nginx=keep-data -purge
+```
+
+<ParamField path="-purge" type="string">
+  Removal options:
+  - `true` - Remove with confirmation
+  - `force` - Remove without confirmation
+</ParamField>
+
+For Nginx:
+- Removes all sites (prompts separately)
+- Removes phpMyAdmin if installed
+- Removes SSL tools if installed
+
+### Remove PHP
+
+```bash
+# Remove PHP (prompts for confirmation)
+sudo stack -php -purge
+
+# Force removal
+sudo stack -php -purge=force
+```
+
+Removing PHP also removes:
+- phpMyAdmin
+- Postfix
+- Redis PHP extension
+- Memcached PHP extension
+
+### Remove MySQL/MariaDB
+
+```bash
+# Remove MySQL/MariaDB (prompts for data deletion)
+sudo stack -mysql -purge
+
+# Remove but keep database data
+sudo stack -mysql=keep-data -purge
+
+# Force removal
+sudo stack -mysql -purge=force
+```
+
+<Warning>
+  By default, removing MySQL/MariaDB deletes all databases. Use `keep-data` to preserve your data.
+</Warning>
+
+### Remove Additional Tools
+
+```bash
+# Remove Let's Encrypt
+sudo stack -letsencrypt -purge
+
+# Remove backup tools
+sudo stack -backups -purge
+
+# Remove Postfix
+sudo stack -postfix -purge
+
+# Remove Redis
+sudo stack -redis -purge
+
+# Remove Memcached
+sudo stack -memcached -purge
+
+# Remove phpMyAdmin
+sudo stack -pma -purge
+```
+
+All support `-purge=force` for unattended removal.
+
+### Remove Entire Stack
+
+Remove all Webinoly stack components:
+
+```bash
+# Remove everything (prompts for confirmation)
+sudo stack -purge-server-all
+
+# Force removal without prompts
+sudo stack -purge-server-all=force
+```
+
+This removes:
+- Nginx and all sites
+- PHP and all extensions
+- MySQL/MariaDB and all databases
+- All additional tools (SSL, backups, phpMyAdmin, etc.)
+
+<Warning>
+  This is a destructive operation. Backup your data first! This cannot be undone.
+</Warning>
+
+## Version Management
+
+### Change PHP Version
+
+Switch to a different PHP version:
+
+```bash
+sudo stack -php-ver=8.3
+sudo stack -php-ver=8.2
+sudo stack -php-ver=8.1
+sudo stack -php-ver=8.0
+sudo stack -php-ver=7.4
+```
+
+<ParamField path="-php-ver" type="string">
+  PHP version to install. Supported versions:
+  - `8.4`
+  - `8.3`
+  - `8.2`
+  - `8.1`
+  - `8.0`
+  - `7.4`
+  - `7.3`
+  - `7.2`
+  - `7.1`
+  - `7.0`
+  - `5.6`
+</ParamField>
+
+The command will:
+1. Backup current configuration (if applicable)
+2. Remove current PHP version
+3. Install new PHP version
+4. Restore configuration
+5. Reinstall phpMyAdmin if it was installed
+
+<Note>
+  Changing PHP version preserves your tools profile (Postfix, Redis, Memcached)
+</Note>
+
+### Change MySQL/MariaDB Version
+
+Switch to a different database version:
+
+```bash
+# MariaDB versions
+sudo stack -mysql-ver=11.4
+sudo stack -mysql-ver=11.2
+sudo stack -mysql-ver=10.11
+sudo stack -mysql-ver=10.6
+
+# MySQL versions (if db-engine is set to mysql)
+sudo stack -mysql-ver=8.4
+sudo stack -mysql-ver=8.0
+```
+
+<ParamField path="-mysql-ver" type="string">
+  Database version to install. Available versions depend on your `db-engine` setting.
+  
+  **MariaDB versions:**
+  - `11.8`, `11.6`, `11.4`, `11.2`, `11.0`
+  - `10.11`, `10.6`, `10.5`, `10.4`, `10.3`
+  
+  **MySQL versions:**
+  - `8.4`, `8.0`
+</ParamField>
+
+<Warning>
+  - Database data is preserved with `keep-data` flag (automatic)
+  - Downgrades are not supported
+  - Switching between MySQL and MariaDB requires manual intervention
+</Warning>
+
+The command will:
+1. Remove current database (keeps data with `keep-data`)
+2. Install new version
+3. Migrate data to new version
+4. Reinstall phpMyAdmin if it was installed
+
+## Stack Information
+
+Display information about installed stack:
+
+```bash
+sudo stack -info
+```
+
+Shows:
+- Installed components and versions
+- Available updates
+- Configuration details
+- Server resources
+
+<Note>
+  Same as `sudo webinoly -info`
+</Note>
+
+## Installation Examples
+
+### Basic Web Server
+
+```bash
+# Install Nginx only
+sudo stack -nginx
+
+# Or with light profile
+sudo stack -nginx -build=light
+```
+
+### PHP Application Server
+
+```bash
+# Install PHP with Nginx
+sudo stack -php
+
+# Install specific PHP version
+sudo stack -php-ver=8.3
+sudo stack -php
+```
+
+### Full WordPress Server
+
+```bash
+# Install complete LEMP stack
+sudo stack -lemp
+
+# Add Redis for object caching
+sudo stack -redis
+
+# Add SSL support
+sudo stack -letsencrypt
+
+# Add backup tools
+sudo stack -backups
+
+# Add database management
+sudo stack -pma
+```
+
+### Minimal Installation
+
+```bash
+# Minimal LEMP stack
+sudo stack -nginx -build=light
+sudo stack -php -build=light
+sudo stack -mysql -build=light
+
+# Add only essential tools
+sudo stack -letsencrypt
+```
+
+### Development Server
+
+```bash
+# Install stack with development tools
+sudo stack -lemp
+sudo stack -pma
+sudo stack -redis
+sudo stack -memcached
+```
+
+## Version Migration Examples
+
+### Upgrade PHP
+
+```bash
+# Check current version
+sudo webinoly -info
+
+# Upgrade to PHP 8.3
+sudo stack -php-ver=8.3
+
+# Verify upgrade
+sudo webinoly -info
+```
+
+### Upgrade MySQL/MariaDB
+
+```bash
+# Check current version
+sudo webinoly -info
+
+# Upgrade MariaDB
+sudo stack -mysql-ver=11.4
+
+# Verify upgrade
+sudo webinoly -info
+```
+
+## Component Dependencies
+
+### Nginx Dependencies
+- Required for: PHP sites, phpMyAdmin, tools site
+- Installs: Nginx, basic configuration, default site
+
+### PHP Dependencies
+- Requires: Nginx (will prompt if not installed)
+- Installs: PHP-FPM, common extensions, OpCache
+- Optional: Postfix, Redis, Memcached
+
+### MySQL/MariaDB Dependencies
+- Standalone installation (no requirements)
+- Installs: Database server, client tools
+
+### Tool Dependencies
+
+| Tool | Requires | Purpose |
+|------|----------|----------|
+| Let's Encrypt | Nginx | SSL certificates |
+| Backups | None | Server/site backups |
+| Postfix | PHP | Email sending |
+| Redis | PHP | Object caching |
+| Memcached | PHP | Object caching |
+| phpMyAdmin | Nginx, PHP, MySQL | Database management |
+
+## Notes
+
+- All commands require `sudo` (root privileges)
+- Installations use official repositories for latest stable versions
+- Most operations reload services automatically
+- Use `-help` to see all available options
+- Check `/opt/webinoly/webinoly.conf` for version settings
+
+## Configuration Files
+
+### Nginx
+- Main config: `/etc/nginx/nginx.conf`
+- Sites: `/etc/nginx/sites-available/`
+- Common configs: `/etc/nginx/common/`
+
+### PHP
+- PHP-FPM config: `/etc/php/[version]/fpm/`
+- php.ini: `/etc/php/[version]/fpm/php.ini`
+- Pool config: `/etc/php/[version]/fpm/pool.d/www.conf`
+
+### MySQL/MariaDB
+- Main config: `/etc/mysql/my.cnf`
+- Custom configs: `/etc/mysql/conf.d/`
+- Data directory: `/var/lib/mysql/`
+
+## Troubleshooting
+
+### Installation Fails
+
+```bash
+# Verify system
+sudo webinoly -verify
+
+# Check for held packages
+sudo apt-mark showhold
+
+# Update package lists
+sudo apt update
+```
+
+### Version Change Fails
+
+```bash
+# Check current installation
+sudo webinoly -info
+
+# Verify configuration
+sudo webinoly -verify
+
+# Check logs
+sudo log -php
+sudo log -mysql
+```
+
+### Service Issues
+
+```bash
+# Check service status
+sudo systemctl status nginx
+sudo systemctl status php8.3-fpm
+sudo systemctl status mysql
+
+# Restart services
+sudo systemctl restart nginx
+sudo systemctl restart php8.3-fpm
+sudo systemctl restart mysql
+```
+
+## See Also
+
+- [Webinoly Command](/cli/webinoly) - Main Webinoly management
+- [Site Command](/cli/site) - Create and manage sites
+- [Log Command](/cli/log) - View service logs

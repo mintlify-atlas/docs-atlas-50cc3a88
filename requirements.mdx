@@ -1,0 +1,396 @@
+---
+title: System requirements
+description: Ensure your server meets the necessary requirements to run Webinoly.
+---
+
+# System requirements
+
+Webinoly is designed to run efficiently on Ubuntu servers with minimal hardware requirements. This page outlines what you need to get started.
+
+## Operating system
+
+Webinoly supports specific Ubuntu LTS (Long Term Support) versions.
+
+### Supported versions
+
+<CardGroup cols={2}>
+  <Card title="Ubuntu 24.04 LTS (Noble)" icon="ubuntu">
+    **Latest supported release**
+    
+    - Requires Webinoly 1.18.0 or newer
+    - Full feature support
+    - Recommended for new installations
+  </Card>
+  
+  <Card title="Ubuntu 22.04 LTS (Jammy)" icon="ubuntu">
+    **Stable supported release**
+    
+    - Supported in all Webinoly versions
+    - Fully tested and stable
+    - Recommended for production
+  </Card>
+</CardGroup>
+
+### Legacy support
+
+<Warning>
+  **Ubuntu 20.04 LTS (Focal)** - Updates only, no new installations allowed.
+  
+  - Last supported version: Webinoly 1.19.1
+  - Security updates only
+  - Migration to Ubuntu 22.04 or 24.04 recommended
+</Warning>
+
+### Unsupported versions
+
+The following Ubuntu versions are no longer supported:
+
+- Ubuntu 18.04 LTS (Bionic) - Ended support
+- Ubuntu 16.04 LTS (Xenial) - Ended support
+- Any non-LTS Ubuntu versions
+- Debian or other Linux distributions
+
+<Info>
+  Only clean Ubuntu server installations are supported. Desktop editions or servers with existing web stacks may cause conflicts.
+</Info>
+
+## Architecture
+
+Webinoly supports modern CPU architectures:
+
+- **x86_64** (amd64) - Standard 64-bit Intel/AMD processors
+- **arm64** (aarch64) - ARM-based processors (ideal for cloud instances)
+
+<Note>
+  32-bit architectures are not supported.
+</Note>
+
+## Hardware requirements
+
+### Minimum requirements
+
+These are the absolute minimum specifications:
+
+| Component | Minimum |
+|-----------|----------|
+| **RAM** | 512 MB |
+| **CPU** | 1 core |
+| **Disk Space** | 10 GB |
+| **Network** | Internet connection |
+
+<Warning>
+  Minimum requirements are suitable for testing only. Production sites require higher specifications.
+</Warning>
+
+### Recommended specifications
+
+For production websites:
+
+<Tabs>
+  <Tab title="Small sites">
+    **Single WordPress site or small application**
+    
+    - RAM: 1-2 GB
+    - CPU: 1-2 cores
+    - Disk: 20 GB SSD
+    - Bandwidth: 1 TB/month
+    
+    Suitable for:
+    - Personal blogs
+    - Small business websites
+    - Development servers
+  </Tab>
+  
+  <Tab title="Medium sites">
+    **Multiple sites or high-traffic single site**
+    
+    - RAM: 2-4 GB
+    - CPU: 2-4 cores
+    - Disk: 40 GB SSD
+    - Bandwidth: 2 TB/month
+    
+    Suitable for:
+    - Business websites
+    - Multiple WordPress sites
+    - E-commerce sites
+  </Tab>
+  
+  <Tab title="Large sites">
+    **High-traffic or resource-intensive sites**
+    
+    - RAM: 4-8 GB+
+    - CPU: 4+ cores
+    - Disk: 80 GB+ SSD
+    - Bandwidth: 5 TB/month+
+    
+    Suitable for:
+    - High-traffic WordPress sites
+    - Multiple e-commerce sites
+    - Application servers
+  </Tab>
+</Tabs>
+
+### Storage recommendations
+
+<Note>
+  SSD storage is strongly recommended over traditional HDDs for significantly better performance.
+</Note>
+
+Disk space usage breakdown:
+
+- **Base system**: ~2-3 GB
+- **Webinoly + LEMP stack**: ~2-3 GB
+- **Each WordPress site**: 500 MB - 2 GB (depending on media)
+- **Logs**: 100 MB - 1 GB per site
+- **Backups**: Variable (plan for 2-3x your site size)
+
+## Network requirements
+
+### Required ports
+
+Ensure these ports are open in your firewall:
+
+| Port | Protocol | Purpose | Required |
+|------|----------|---------|----------|
+| 22 | TCP | SSH access | Yes |
+| 80 | TCP | HTTP traffic | Yes |
+| 443 | TCP | HTTPS traffic | Yes |
+| 22222 | TCP | Webinoly admin tools | Optional |
+
+<Info>
+  Port 22222 is used for Webinoly's admin tools interface. It can be changed during installation or disabled if not needed.
+</Info>
+
+### Firewall configuration examples
+
+<CodeGroup>
+```bash UFW (Ubuntu Firewall)
+# Allow SSH
+sudo ufw allow 22/tcp
+
+# Allow HTTP and HTTPS
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+
+# Allow Webinoly admin tools (optional)
+sudo ufw allow 22222/tcp
+
+# Enable firewall
+sudo ufw enable
+```
+
+```bash iptables
+# Allow SSH
+iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+
+# Allow HTTP and HTTPS
+iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+
+# Allow Webinoly admin tools (optional)
+iptables -A INPUT -p tcp --dport 22222 -j ACCEPT
+```
+
+```bash Cloud provider security groups
+# Add inbound rules for:
+# - SSH: TCP 22 from your IP
+# - HTTP: TCP 80 from anywhere (0.0.0.0/0)
+# - HTTPS: TCP 443 from anywhere (0.0.0.0/0)
+# - Admin tools: TCP 22222 from your IP (optional)
+```
+</CodeGroup>
+
+### Domain name requirements
+
+For production use, you'll need:
+
+- A registered domain name
+- Access to DNS management
+- DNS A record pointing to your server's IP address
+
+<Note>
+  For testing, you can use your server's IP address directly, but SSL certificates won't work without a domain name.
+</Note>
+
+## Software stack versions
+
+Webinoly installs and manages these components:
+
+### PHP versions supported
+
+- PHP 8.5
+- PHP 8.4 (default)
+- PHP 8.3
+- PHP 8.2
+- PHP 8.1
+- PHP 8.0
+- PHP 7.4
+
+<Info>
+  Multiple PHP versions can be installed simultaneously. The default is PHP 8.4.
+</Info>
+
+### Database engines
+
+**MariaDB** (default):
+- 11.8 (default)
+- 11.4
+- 10.11
+
+**MySQL**:
+- 8.4 (default)
+- 8.0
+
+<Note>
+  You can choose between MariaDB and MySQL during installation. MariaDB is the default and recommended option.
+</Note>
+
+### Web server
+
+- **NGINX**: Latest mainline version
+- HTTP/2 and HTTP/3 support
+- Optimized configuration included
+
+## Cloud provider compatibility
+
+Webinoly works with all major cloud providers:
+
+<CardGroup cols={2}>
+  <Card title="DigitalOcean" icon="digital-ocean">
+    Use Ubuntu 24.04 or 22.04 droplets
+    
+    Recommended: 1 GB RAM minimum
+  </Card>
+  
+  <Card title="AWS EC2" icon="aws">
+    Use Ubuntu Server 24.04 or 22.04 LTS AMI
+    
+    Recommended: t3.micro or larger
+  </Card>
+  
+  <Card title="Linode" icon="linode">
+    Use Ubuntu 24.04 or 22.04 LTS images
+    
+    Recommended: Nanode 1 GB or larger
+  </Card>
+  
+  <Card title="Vultr" icon="server">
+    Use Ubuntu 24.04 or 22.04 x64
+    
+    Recommended: 1 GB RAM minimum
+  </Card>
+</CardGroup>
+
+### Cloud-specific notes
+
+<AccordionGroup>
+  <Accordion title="AWS EC2">
+    - Use Ubuntu Server AMI (not Ubuntu Pro)
+    - Ensure security groups allow ports 22, 80, 443
+    - Consider using Elastic IP for production
+    - t3 instances recommended over t2
+  </Accordion>
+  
+  <Accordion title="Google Cloud Platform">
+    - Use Ubuntu 24.04 or 22.04 LTS
+    - Configure firewall rules for HTTP/HTTPS
+    - Use e2-micro or larger
+    - Enable HTTP/HTTPS traffic in instance settings
+  </Accordion>
+  
+  <Accordion title="Azure">
+    - Use Ubuntu Server 24.04 or 22.04 LTS
+    - Configure Network Security Groups
+    - B1s or larger recommended
+    - Ensure public IP is assigned
+  </Accordion>
+  
+  <Accordion title="DigitalOcean">
+    - 1 GB droplet minimum
+    - Cloud Firewalls automatically configured
+    - Floating IPs supported
+    - Block Storage for additional space
+  </Accordion>
+</AccordionGroup>
+
+## Pre-installation checklist
+
+Before installing Webinoly, verify:
+
+- [ ] Running supported Ubuntu version (22.04 or 24.04)
+- [ ] Server has at least 512 MB RAM (1 GB+ recommended)
+- [ ] Root or sudo access available
+- [ ] Ports 22, 80, 443 open in firewall
+- [ ] Internet connectivity working
+- [ ] DNS configured (if using domain names)
+- [ ] No existing web server installed (Apache, NGINX, etc.)
+- [ ] No existing PHP installation
+- [ ] No existing MySQL/MariaDB installation
+
+<Warning>
+  Webinoly requires a clean server. If you have existing web server software installed, remove it first or use a fresh server.
+</Warning>
+
+## Compatibility issues
+
+### Not compatible with
+
+- **Control panels**: cPanel, Plesk, DirectAdmin, VestaCP
+- **Existing LEMP stacks**: EasyEngine, WordOps, CentminMod
+- **Containerized environments**: Docker, LXC containers (unless properly configured)
+- **Desktop Ubuntu**: Webinoly is designed for Ubuntu Server
+
+### Special environments
+
+<Info>
+  **WSL (Windows Subsystem for Linux)**: Not officially supported but may work for development. Production use not recommended.
+  
+  **Vagrant/VirtualBox**: Supported for development and testing.
+  
+  **Proxmox/KVM**: Fully supported when running Ubuntu Server VMs.
+</Info>
+
+## Performance considerations
+
+### RAM usage estimates
+
+Typical memory usage:
+
+- **NGINX**: 10-50 MB
+- **PHP-FPM**: 50-200 MB per site
+- **MariaDB**: 200-400 MB
+- **System**: 150-300 MB
+- **Cache (Redis)**: 50-100 MB (if enabled)
+
+<Note>
+  With 1 GB RAM, you can typically host 2-3 WordPress sites with moderate traffic.
+</Note>
+
+### Swap space
+
+For servers with limited RAM:
+
+```bash
+# Check current swap
+sudo swapon --show
+
+# Add 2GB swap if needed
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+```
+
+## Next steps
+
+If your server meets these requirements:
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/installation">
+    Install Webinoly on your server
+  </Card>
+  
+  <Card title="Quick start" icon="rocket" href="/quickstart">
+    Create your first website
+  </Card>
+</CardGroup>

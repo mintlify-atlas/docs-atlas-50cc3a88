@@ -1,0 +1,649 @@
+---
+title: "Security defaults"
+description: "Built-in security features and hardening measures in Webinoly"
+---
+
+Webinoly implements multiple layers of security hardening to protect your web server and applications from common attacks and vulnerabilities.
+
+## Server hardening
+
+### Kernel optimization
+
+Webinoly automatically applies kernel-level security optimizations:
+
+**Network stack protection**:
+```bash
+# SYN flood protection
+net.ipv4.tcp_syncookies = 1
+net.ipv4.tcp_max_syn_backlog = 2048
+
+# IP spoofing protection
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+
+# Ignore ICMP redirects
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+
+# Ignore send redirects
+net.ipv4.conf.all.send_redirects = 0
+
+# Disable source packet routing
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv6.conf.all.accept_source_route = 0
+```
+
+**File system protection**:
+```bash
+# Protect against hard/symbolic link attacks
+fs.protected_hardlinks = 1
+fs.protected_symlinks = 1
+
+# Restrict dmesg access
+kernel.dmesg_restrict = 1
+```
+
+<Info>
+  Kernel optimizations are applied automatically during installation. Disable with `kernel-optim:false` in the configuration file.
+</Info>
+
+### Automatic security updates
+
+Webinoly disables Ubuntu's automatic updates by default to prevent unexpected issues:
+
+```bash
+# Enable automatic updates (if desired)
+sudo nano /opt/webinoly/webinoly.conf
+# Set: auto-updates:true
+
+sudo webinoly -server-reset
+```
+
+<Warning>
+  While automatic updates improve security, they may cause unexpected service disruptions. Test updates in a staging environment first.
+</Warning>
+
+## Nginx security
+
+### Server information hiding
+
+Prevent server version disclosure:
+
+```nginx
+server_tokens off;  # Hides Nginx version
+```
+
+Removes version information from:
+- HTTP headers (`Server: nginx`)
+- Error pages
+- Response headers
+
+### Rate limiting
+
+Protect against brute-force and DoS attacks:
+
+```nginx
+limit_req_zone $binary_remote_addr zone=one:10m rate=1r/s;
+limit_req_zone $binary_remote_addr zone=wp:10m rate=5r/s;
+```
+
+**Configured zones**:
+- `one`: General rate limit (1 request/second)
+- `wp`: WordPress admin area (5 requests/second)
+
+<Tabs>
+  <Tab title="WP-Admin protection">
+    WordPress admin areas are automatically protected:
+
+    ```nginx
+    location ~ ^/wp-admin/ {
+        limit_req zone=wp burst=10 nodelay;
+        # Additional rules...
+    }
+    ```
+
+    **Default limits**:
+    - 5 requests per second
+    - Burst of 10 requests allowed
+    - Returns HTTP 429 (Too Many Requests) when exceeded
+  </Tab>
+  
+  <Tab title="Disable rate limiting">
+    Disable WordPress admin rate limiting (not recommended):
+
+    ```bash
+    sudo nano /opt/webinoly/webinoly.conf
+    # Set: wp-admin-limited:false
+
+    sudo webinoly -server-reset
+    ```
+  </Tab>
+</Tabs>
+
+### File access restrictions
+
+Webinoly blocks access to sensitive files by default:
+
+**Blocked file extensions** (default):
+```text
+.7z .ai .alfa .backup .bak .bash .bat .bin .bz2 .c .cfg .cgi
+.class .com .conf .cpp .dat .db .dll .dmg .env .exe .git .gz
+.ini .iso .jar .log .old .orig .pdb .pem .phar .php~ .pkg .pl
+.py .rar .rpm .sh .sql .swp .sys .tar .tmp .war .yml .zip
+```
+
+**Blocked filenames** (case-insensitive):
+```text
+changelog, environment, install, license, readme, upgrade,
+wp-config, composer.json, package.json
+```
+
+**Blocked patterns** (exact match):
+```text
+/node_modules/, /fixtures/, /behat/, /.git/, /.env
+```
+
+<Note>
+  Customize blocked files in `/opt/webinoly/webinoly.conf` using the `locations-deny-*` variables.
+</Note>
+
+### Hidden files protection
+
+Dot files (hidden files) are blocked by default:
+
+```nginx
+location ~ /\. {
+    deny all;
+    access_log off;
+    log_not_found off;
+}
+```
+
+Protects:
+- `.htaccess`
+- `.git/`
+- `.env`
+- `.config`
+- `.htpasswd`
+
+## PHP security
+
+### Disabled functions
+
+Webinoly disables dangerous PHP functions by default:
+
+**Default disabled functions**:
+```php
+// System execution
+pcntl_exec, pcntl_fork, pcntl_alarm, pcntl_signal, posix_kill
+
+// Shell access  
+system, exec, shell_exec, passthru, proc_open, popen
+
+// File system
+link, symlink, dl, highlight_file, show_source
+
+// Network
+socket_accept, socket_bind, socket_connect, socket_listen
+
+// Other
+putenv, escapeshellcmd, proc_terminate, diskfreespace
+```
+
+<Warning>
+  Some applications may require specific functions. Test thoroughly after enabling any disabled functions.
+</Warning>
+
+**Re-enable specific functions**:
+
+```bash
+# Edit PHP configuration
+sudo nano /opt/webinoly/webinoly.conf
+
+# Remove unwanted functions from the list
+php-disable-functions:system,exec,shell_exec
+
+# Apply changes
+sudo webinoly -server-reset=php
+```
+
+### URL fopen restriction
+
+Prevents remote file inclusion attacks:
+
+```php
+allow_url_fopen = Off  // Default: disabled
+```
+
+Enable only if required:
+```bash
+sudo nano /opt/webinoly/webinoly.conf
+php-allow-url-fopen:true
+
+sudo webinoly -server-reset=php
+```
+
+### Session security
+
+PHP sessions are configured with security best practices:
+
+```php ini
+session.use_strict_mode = 1       // Reject uninitialized session IDs
+session.cookie_httponly = 1       // Prevent JavaScript access
+session.cookie_secure = 1         // HTTPS-only transmission
+session.cookie_samesite = Lax     // CSRF protection
+```
+
+### Information disclosure
+
+Prevent PHP version exposure:
+
+```php ini
+expose_php = Off  // Removes X-Powered-By header
+```
+
+## SSL/TLS security
+
+### Modern protocols only
+
+Webinoly enforces modern TLS protocols:
+
+```nginx
+ssl_protocols TLSv1.2 TLSv1.3;
+```
+
+<Info>
+  TLS 1.0 and 1.1 are deprecated and disabled for security.
+</Info>
+
+### Strong cipher suites
+
+Secure cipher configuration:
+
+```nginx
+ssl_prefer_server_ciphers off;
+ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:
+             ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:
+             ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:
+             DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:
+             DHE-RSA-CHACHA20-POLY1305';
+```
+
+### DH parameters
+
+Webinoly generates 2048-bit Diffie-Hellman parameters for key exchange:
+
+```bash
+# Located at
+/etc/ssl/dhparam.pem
+```
+
+### Session management
+
+```nginx
+ssl_session_timeout 1h;
+ssl_session_cache shared:SSL:50m;
+ssl_session_tickets off;  // Disabled for security
+```
+
+### kTLS support
+
+Hardware-accelerated TLS on Ubuntu 22.04+:
+
+```nginx
+ssl_conf_command Options KTLS;
+```
+
+## HTTP security headers
+
+Webinoly configures security headers automatically:
+
+### HSTS (HTTP Strict Transport Security)
+
+Force HTTPS connections:
+
+```nginx
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+```
+
+**Default**: 1 year (31536000 seconds)
+
+<Tabs>
+  <Tab title="Customize">
+    Modify HSTS max-age:
+
+    ```bash
+    sudo nano /opt/webinoly/webinoly.conf
+    header-hsts:63072000  # 2 years
+
+    sudo webinoly -server-reset
+    ```
+  </Tab>
+  
+  <Tab title="Preload">
+    Enable HSTS preload (permanent HTTPS):
+
+    ```bash
+    sudo nano /opt/webinoly/webinoly.conf
+    header-hsts:preload  # Sets max-age to 2 years + preload directive
+
+    sudo webinoly -server-reset
+    ```
+
+    <Warning>
+      HSTS preload is irreversible. Submit to https://hstspreload.org/ only if you're certain.
+    </Warning>
+  </Tab>
+</Tabs>
+
+### X-Frame-Options
+
+Prevent clickjacking attacks:
+
+```nginx
+X-Frame-Options: SAMEORIGIN  // Default
+```
+
+Options:
+- `SAMEORIGIN` - Allow framing from same origin
+- `DENY` - Block all framing
+- `ALLOW-FROM https://example.com` - Allow specific origin
+
+### X-Content-Type-Options
+
+Prevent MIME-type sniffing:
+
+```nginx
+X-Content-Type-Options: nosniff
+```
+
+### Referrer-Policy
+
+Control referrer information:
+
+```nginx
+Referrer-Policy: strict-origin-when-cross-origin  // Default
+```
+
+### Content-Security-Policy (CSP)
+
+Not configured by default. Add custom CSP:
+
+```bash
+sudo nano /opt/webinoly/webinoly.conf
+header-csp:default-src 'self'; script-src 'self' 'unsafe-inline'
+
+sudo webinoly -server-reset
+```
+
+### Permissions-Policy
+
+Control browser features:
+
+```bash
+# Disable all features
+header-permissions:accelerometer=(),camera=(),geolocation=(),microphone=()
+
+# Or block FLoC specifically
+header-permissions:floc
+```
+
+## WordPress security
+
+### HTTP authentication
+
+Webinoly adds HTTP Basic Authentication to wp-admin by default:
+
+```bash
+# Enabled automatically for new WordPress sites
+sudo site example.com -wp
+
+# Enable for existing site
+sudo httpauth example.com -wp-admin=on
+
+# Disable (not recommended)
+sudo httpauth example.com -wp-admin=off
+```
+
+<Info>
+  HTTP authentication adds an extra layer of security before the WordPress login page.
+</Info>
+
+### Authentication whitelist
+
+Bypass HTTP authentication for trusted IPs:
+
+```bash
+# Whitelist single IP
+sudo httpauth -whitelist=1.2.3.4
+
+# Whitelist multiple IPs
+sudo httpauth -whitelist=1.2.3.4,5.6.7.8
+
+# Or edit configuration
+sudo nano /opt/webinoly/webinoly.conf
+auth-whitelist-ip:1.2.3.4,5.6.7.8
+
+sudo webinoly -server-reset
+```
+
+### XML-RPC blocking
+
+XML-RPC is blocked by default to prevent brute-force attacks:
+
+```bash
+# Verify XML-RPC is blocked
+curl -X POST https://example.com/xmlrpc.php
+# Should return 403 Forbidden
+
+# Enable XML-RPC (not recommended)
+sudo nano /opt/webinoly/webinoly.conf
+xmlrpc:open
+
+sudo webinoly -server-reset
+```
+
+### WP-CLI security
+
+WP-CLI is installed with restricted permissions:
+
+```bash
+# Only accessible by www-data and root
+sudo -u www-data wp --info
+```
+
+## MySQL/MariaDB security
+
+### Secure installation
+
+Webinoly runs mysql_secure_installation automatically:
+
+- Root password set (randomly generated)
+- Remote root login disabled
+- Anonymous users removed
+- Test database removed
+- Privileges flushed
+
+### Admin user
+
+Creates a separate `admin` user with full privileges:
+
+```sql
+-- Instead of using root, use the admin user
+CREATE USER 'admin'@'localhost' IDENTIFIED BY 'random_password';
+GRANT ALL PRIVILEGES ON *.* TO 'admin'@'localhost' WITH GRANT OPTION;
+```
+
+**Credentials stored**:
+```bash
+# Located in
+/opt/webinoly/webinoly.conf
+
+# Encrypted storage
+mysql-admin:<encrypted_password>
+```
+
+### Public access disabled
+
+MySQL/MariaDB binds to localhost only:
+
+```bash
+bind-address = 127.0.0.1  # Default
+```
+
+Enable remote access (if needed):
+```bash
+sudo webinoly -mysql-public-access=on
+
+# Or bind to specific IP
+sudo webinoly -mysql-public-access=1.2.3.4
+```
+
+<Warning>
+  Opening MySQL to public access increases attack surface. Use firewall rules and strong passwords.
+</Warning>
+
+## Firewall configuration
+
+Webinoly doesn't configure a firewall by default. Use UFW:
+
+```bash
+# Install and enable UFW
+sudo apt install ufw
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+# Allow essential services
+sudo ufw allow 22/tcp      # SSH
+sudo ufw allow 80/tcp      # HTTP
+sudo ufw allow 443/tcp     # HTTPS
+sudo ufw allow 22222/tcp   # Admin tools (optional)
+
+# Enable firewall
+sudo ufw enable
+```
+
+## IP blocking
+
+Block specific IPs or ranges:
+
+```bash
+# Block single IP
+sudo webinoly -blockip=1.2.3.4
+
+# Block multiple IPs
+sudo webinoly -blockip=1.2.3.4,5.6.7.8
+
+# Block IP range (CIDR)
+sudo webinoly -blockip=1.2.3.0/24
+
+# Unblock IP
+sudo webinoly -unblock=1.2.3.4
+```
+
+## Monitoring and logging
+
+### Access logs
+
+Access logs are disabled globally by default (performance):
+
+```bash
+# Enable access logs globally
+sudo log -access-log=on
+
+# Enable for specific site
+sudo site example.com -log=on
+```
+
+### Error logs
+
+Error logs are always enabled:
+
+```bash
+# View Nginx errors
+sudo tail -f /var/log/nginx/error.log
+
+# View PHP-FPM errors
+sudo tail -f /var/log/php8.4-fpm.log
+
+# View MySQL errors
+sudo tail -f /var/log/mysql/error.log
+```
+
+### Log format
+
+Webinoly uses custom log format for security monitoring:
+
+```nginx
+log_format we_log '$remote_addr $upstream_response_time $upstream_cache_status [$time_local] '
+    '$host "$request" $status $body_bytes_sent $request_time '
+    '"$http_referer" "$http_user_agent"';
+```
+
+## Security best practices
+
+<Note>
+  **Essential security measures**:
+  1. Keep Webinoly and all packages updated
+  2. Use strong passwords for all accounts
+  3. Enable HTTP authentication for WordPress admin
+  4. Configure SSL/TLS for all production sites
+  5. Regularly review access logs for suspicious activity
+  6. Use fail2ban for automated IP blocking
+  7. Implement regular backup schedule
+  8. Limit SSH access to specific IPs
+  9. Disable unnecessary services
+  10. Test security configuration regularly
+</Note>
+
+## Security auditing
+
+Verify security configuration:
+
+```bash
+# System-wide verification
+sudo webinoly -verify
+
+# Check specific configurations
+sudo nginx -t
+sudo php-fpm8.4 -t
+
+# Review security headers
+curl -I https://example.com
+
+# Test SSL configuration
+sslscan example.com
+# or
+testssl.sh example.com
+```
+
+## Additional security tools
+
+### Fail2Ban
+
+Automate IP blocking for repeated failed attempts:
+
+```bash
+sudo apt install fail2ban
+
+# Configure Nginx jail
+sudo nano /etc/fail2ban/jail.local
+```
+
+### ModSecurity
+
+Web application firewall (not included):
+
+```bash
+# Install ModSecurity for Nginx
+sudo apt install libnginx-mod-security
+```
+
+### ClamAV
+
+Antivirus scanning:
+
+```bash
+sudo apt install clamav clamav-daemon
+sudo freshclam
+```

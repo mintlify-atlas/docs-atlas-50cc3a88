@@ -1,0 +1,744 @@
+---
+title: "Configuration file"
+description: "Understanding and customizing the Webinoly configuration file"
+---
+
+The Webinoly configuration file (`webinoly.conf`) is the central location for customizing your LEMP stack settings. This file allows you to override default values and persist custom configurations across server resets.
+
+## Location
+
+The configuration file is located at:
+
+```bash
+/opt/webinoly/webinoly.conf
+```
+
+<Info>
+  This file is created automatically during Webinoly installation.
+</Info>
+
+## File structure
+
+The configuration file uses a simple `key:value` syntax:
+
+```bash
+# Comment lines start with #
+variable-name:value
+
+# Uncomment to enable
+#disabled-variable:value
+```
+
+**Key features**:
+- Lines starting with `#` are comments or disabled settings
+- Variable names use lowercase with hyphens
+- Values are separated by a colon (`:`)
+- No spaces around the colon
+- Boolean values: `true` or `false`
+- Numeric values: integers without quotes
+- String values: text without quotes (unless containing special characters)
+
+## Configuration sections
+
+The file is organized into logical sections:
+
+1. **Operating System**: Timezone, kernel optimization, swap settings
+2. **Nginx**: Web server configuration and security
+3. **PHP**: PHP-FPM settings and extensions
+4. **MySQL/MariaDB**: Database configuration
+
+## Editing the configuration
+
+<Steps>
+  <Step title="Open the file">
+    Use your preferred text editor:
+
+    ```bash
+    sudo nano /opt/webinoly/webinoly.conf
+    ```
+  </Step>
+  
+  <Step title="Uncomment and modify">
+    Remove the `#` at the beginning and set your value:
+
+    ```bash
+    # Before (disabled)
+    #max-mb-uploads:100
+
+    # After (enabled)
+    max-mb-uploads:500
+    ```
+  </Step>
+  
+  <Step title="Apply changes">
+    Most settings require a server reset:
+
+    ```bash
+    # Reset all components
+    sudo webinoly -server-reset
+
+    # Reset specific component only
+    sudo webinoly -server-reset=nginx
+    sudo webinoly -server-reset=php
+    sudo webinoly -server-reset=mysql
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  Always backup the configuration file before making major changes:
+  ```bash
+  sudo cp /opt/webinoly/webinoly.conf /opt/webinoly/webinoly.conf.backup
+  ```
+</Warning>
+
+## Operating system settings
+
+### Timezone
+
+Set the server timezone:
+
+```bash
+timezone:America/New_York
+```
+
+**Valid values**: Any timezone from the [PHP timezone list](https://www.php.net/manual/en/timezones.php)
+
+**Affects**: System time, PHP, cron jobs, log timestamps
+
+**Alternative command**:
+```bash
+sudo webinoly -timezone=America/New_York
+```
+
+### Kernel optimization
+
+Enable or disable kernel-level optimizations:
+
+```bash
+kernel-optim:true  # Default: enabled
+```
+
+**When enabled**, applies:
+- Network stack security
+- File descriptor limits
+- SYN flood protection
+- IP spoofing protection
+- Swap management
+
+### Automatic updates
+
+```bash
+auto-updates:false  # Default: disabled
+```
+
+<Note>
+  Ubuntu's default automatic updates are disabled by Webinoly to prevent unexpected issues. Enable only if you understand the risks.
+</Note>
+
+### SWAP configuration
+
+```bash
+# Set custom swap size (GB)
+swap-mem:2
+
+# RAM percentage for /run folder
+run-folder-size:15  # Default: 10%
+```
+
+**Default swap sizes** (if not specified):
+- 1GB RAM: 1GB swap
+- 2-6GB RAM: 2GB swap
+- 6-12GB RAM: 3GB swap
+- 12-16GB RAM: 4GB swap
+
+## Nginx settings
+
+### Branch selection
+
+```bash
+nginx-ppa:stable    # or "mainline"
+```
+
+<Warning>
+  Set before installation. Never change after Nginx is installed.
+</Warning>
+
+### Upload limits
+
+```bash
+max-mb-uploads:100  # Default: 100MB
+```
+
+**Affects**:
+- Nginx: `client_max_body_size`
+- PHP: `upload_max_filesize` and `post_max_size`
+
+### Email address
+
+```bash
+mail:admin@example.com
+```
+
+Used for:
+- Let's Encrypt certificate registration
+- System notifications
+- Root email forwarding
+
+### SFTP access
+
+```bash
+sftp-www-data:false  # Default: disabled
+```
+
+Enables SFTP login for the `www-data` user:
+
+```bash
+sftp-www-data:true
+```
+
+**Alternative command**:
+```bash
+sudo webinoly -sftp=on
+```
+
+### Access logs
+
+```bash
+global-access-log-off:true  # Default: disabled (for performance)
+```
+
+**Log format options**:
+```bash
+nginx-log-format:basic      # or "extended" or "custom"
+```
+
+### Error log level
+
+```bash
+nginx-error-log-level:error  # Default
+```
+
+**Valid values**: `info`, `notice`, `warn`, `error`, `crit`, `alert`, `emerg`
+
+### Default site behavior
+
+```bash
+default-response:blackhole  # or "default"
+```
+
+**Options**:
+- `default`: Show Nginx welcome page
+- `blackhole`: Return 444 (connection closed)
+- `example.com`: Redirect to specific domain
+
+### Admin tools
+
+```bash
+# Change admin tools port
+tools-port-set:8080  # Default: 22222
+
+# Use specific domain for admin tools
+tools-site:admin.example.com  # Default: default
+```
+
+### IP management
+
+```bash
+# Whitelist IPs for HTTP auth bypass
+auth-whitelist-ip:1.2.3.4,5.6.7.8
+
+# Block specific IPs
+blockip:9.9.9.9,8.8.8.8
+```
+
+### File access restrictions
+
+```bash
+# Block specific files (case-insensitive, limited extensions)
+locations-deny-files:readme|license|changelog|install
+
+# Block file extensions
+locations-deny-extensions:exe|bat|sh|sql|log|env
+
+# Block exact matches (case-sensitive)
+locations-deny-match:/node_modules/|composer\.json|/.git/
+```
+
+<Note>
+  Use `off` to disable any of these security features.
+</Note>
+
+### Browser cache
+
+```bash
+browser-cache-extensions:css|js|jpg|jpeg|png|gif|webp|svg|woff|woff2
+```
+
+### FastCGI cache
+
+```bash
+# Cache validity: success,inactive,redirects
+fastcgi-conf:30d,7d,1m
+```
+
+### WordPress cache settings
+
+```bash
+# Query string handling
+wpcache-query-strings:never  # or "all"
+
+# Excluded URLs (pipe-separated regex)
+wpcache-exclude-url:/wp-admin/|/xmlrpc.php|/feed/|/cart/|/checkout/
+
+# Excluded cookies (pipe-separated regex)
+wpcache-exclude-cookie:wordpress_logged_in|comment_author|items_in_cart
+```
+
+### WordPress security
+
+```bash
+# HTTP Basic Auth on wp-admin
+wp-admin-auth:true  # Default: enabled
+
+# Rate limiting on wp-admin
+wp-admin-limited:true  # Default: enabled
+
+# XML-RPC status
+xmlrpc:blocked  # or "open"
+```
+
+### HTTP headers
+
+```bash
+# Cache Control
+header-cache-control:public, max-age=604800  # or "no-cache" or "off"
+
+# Content Security Policy
+header-csp:default-src 'self'; script-src 'self' 'unsafe-inline'
+header-csp-report-only:off  # or "on"
+
+# HSTS
+header-hsts:31536000  # seconds, or "preload", or "off"
+
+# Permissions Policy
+header-permissions:camera=(),microphone=(),geolocation=()
+# or use "floc" to block Topics API
+
+# Referrer Policy
+header-referrer:strict-origin-when-cross-origin
+# Options: no-referrer, origin, same-origin, unsafe-url, off
+
+# X-Content-Type-Options
+header-xcto:true  # nosniff
+
+# X-Frame-Options
+header-xfo:sameorigin  # or "deny" or "allow-from" or "off"
+header-xfo-url:https://example.com  # only with "allow-from"
+
+# X-Robots-Tag
+header-robots:noindex,nofollow  # pipe-separated for multiple
+
+# X-XSS-Protection (deprecated)
+header-xssp:false  # Default: disabled
+```
+
+## PHP settings
+
+### Version selection
+
+```bash
+php-ver:8.4  # Default: latest stable
+```
+
+**Supported versions**: 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5
+
+<Warning>
+  To change PHP version after installation, use:
+  ```bash
+  sudo stack -php-ver=8.3
+  ```
+  Never modify this value directly in the config file after PHP is installed.
+</Warning>
+
+### Process manager
+
+```bash
+php-pm:dynamic  # or "static" or "ondemand"
+```
+
+**Modes explained**:
+- `dynamic`: Processes scale based on demand (recommended)
+- `static`: Fixed number of processes
+- `ondemand`: Processes spawn only when needed
+
+### Resource limits
+
+```bash
+# Child processes
+php-max-child:10      # Auto-calculated by default
+
+# Memory per script
+php-max-mem:256       # MB
+
+# Execution time
+php-max-time:60       # seconds
+
+# Simultaneous file uploads
+php-max-files:20
+
+# Input variables
+php-max-input-vars:5000
+```
+
+### OPcache
+
+```bash
+# Validate file changes
+php-opcache-timestamps:true
+
+# Revalidation frequency
+php-opcache-reval:2  # seconds
+```
+
+<Note>
+  Set `php-opcache-timestamps:false` in production for maximum performance (requires manual cache clearing).
+</Note>
+
+### Security
+
+```bash
+# Path info (SCRIPT_NAME)
+php-info:false
+
+# Disabled functions (comma-separated)
+php-disable-functions:system,exec,shell_exec,passthru,proc_open
+# or use "off" to disable this feature
+
+# Allow URL fopen
+php-allow-url-fopen:false
+```
+
+### Session configuration
+
+```bash
+# Session lifetime (seconds)
+php-session-max-lifetime:1440  # 24 minutes
+
+# Cookie lifetime (0 = until browser closes)
+php-session-cookie-lifetime:0
+
+# SameSite attribute
+php-session-cookie-samesite:Lax  # or "Strict" or "None"
+```
+
+### Redis
+
+```bash
+# Memory percentage for Redis
+redis-max-mem:10  # 10% of total RAM
+```
+
+## MySQL/MariaDB settings
+
+### Database engine
+
+```bash
+db-engine:mariadb  # or "mysql"
+```
+
+<Warning>
+  Set before installation. Cannot be changed after database is installed.
+</Warning>
+
+### Version
+
+```bash
+mysql-ver:11.8  # MariaDB versions: 10.11, 11.4, 11.8
+# or
+mysql-ver:8.4   # MySQL versions: 8.0, 8.4
+```
+
+### External database
+
+Save external database credentials:
+
+```bash
+external-dbh:mysql.example.com  # Host
+external-dbx:3306               # Port
+external-dbu:dbuser             # Username
+external-dbp:password           # Password
+```
+
+### Default privileges
+
+```bash
+dbrole:full  # or "basic", "limited", "extra", "complete", "grant", "all"
+```
+
+**Privilege levels**:
+- `basic`: SELECT, INSERT, UPDATE, DELETE
+- `limited`: basic + CREATE, DROP, INDEX, ALTER
+- `extra`: limited + CREATE TEMPORARY TABLES, LOCK TABLES
+- `full`: extra + REFERENCES, CREATE VIEW, SHOW VIEW, TRIGGER, EVENT (default)
+- `complete`: full + EXECUTE, CREATE ROUTINE, ALTER ROUTINE
+- `grant`: complete + GRANT OPTION
+- `all`: All privileges with GRANT OPTION
+
+### Logging
+
+```bash
+# General query log
+mysql-log-general:false
+
+# Binary log (for replication)
+mysql-log-binary:false
+mysql-log-binary-expire:864000  # 10 days
+
+# Slow query log
+mysql-log-slow:false
+mysql-long-query-time:10  # seconds
+```
+
+### Public access
+
+```bash
+mysql-public-access:false  # or "true" or "1.2.3.4" (specific IP)
+```
+
+## Configuration examples
+
+### Production WordPress server
+
+```bash
+# Operating System
+timezone:America/New_York
+kernel-optim:true
+auto-updates:false
+
+# Nginx
+max-mb-uploads:250
+mail:admin@example.com
+global-access-log-off:true
+default-response:blackhole
+wp-admin-auth:true
+wp-admin-limited:true
+xmlrpc:blocked
+
+# FastCGI Cache
+fastcgi-conf:30d,7d,1m
+wpcache-query-strings:never
+
+# PHP
+php-ver:8.4
+php-max-mem:256
+php-max-time:60
+php-opcache-timestamps:false
+php-opcache-reval:60
+
+# MySQL
+db-engine:mariadb
+mysql-ver:11.8
+mysql-public-access:false
+```
+
+### Development server
+
+```bash
+# Operating System
+timezone:America/New_York
+kernel-optim:true
+
+# Nginx
+max-mb-uploads:500
+global-access-log-off:false
+nginx-log-format:extended
+wp-admin-auth:false
+
+# PHP
+php-ver:8.4
+php-max-mem:512
+php-max-time:300
+php-opcache-timestamps:true
+php-opcache-reval:2
+
+# MySQL
+mysql-log-slow:true
+mysql-long-query-time:3
+```
+
+### High-traffic site
+
+```bash
+# Nginx
+max-mb-uploads:100
+fastcgi-conf:60d,14d,5m
+
+# PHP
+php-pm:dynamic
+php-max-child:50
+php-max-mem:256
+php-opcache-timestamps:false
+php-opcache-reval:3600
+
+# Redis
+redis-max-mem:20
+```
+
+## Applying changes
+
+### Server reset
+
+Most configuration changes require a server reset:
+
+<Tabs>
+  <Tab title="All components">
+    Reset entire stack:
+
+    ```bash
+    sudo webinoly -server-reset
+    ```
+
+    This resets:
+    - Nginx configuration
+    - PHP-FPM settings
+    - MySQL/MariaDB configuration
+    - Kernel parameters (if enabled)
+  </Tab>
+  
+  <Tab title="Specific component">
+    Reset individual components:
+
+    ```bash
+    # Nginx only
+    sudo webinoly -server-reset=nginx
+
+    # PHP only
+    sudo webinoly -server-reset=php
+
+    # MySQL only
+    sudo webinoly -server-reset=mysql
+
+    # Operating system only
+    sudo webinoly -server-reset=os
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+  Server reset will:
+  - Reload service configurations
+  - Restart affected services (brief downtime)
+  - Preserve existing sites and databases
+  - NOT delete any data
+</Warning>
+
+### Changes without reset
+
+Some settings don't require a server reset:
+
+- `timezone` (use `sudo webinoly -timezone=...`)
+- `mail` (use `sudo webinoly -email=...`)
+- `blockip` (use `sudo webinoly -blockip=...`)
+- `external-db*` (credentials only)
+- `awsiamrole`
+
+## Backup and restore
+
+### Backup configuration
+
+```bash
+# Manual backup
+sudo cp /opt/webinoly/webinoly.conf /root/webinoly.conf.backup
+
+# With timestamp
+sudo cp /opt/webinoly/webinoly.conf /root/webinoly.conf.$(date +%Y%m%d)
+```
+
+### Restore configuration
+
+```bash
+# Restore from backup
+sudo cp /root/webinoly.conf.backup /opt/webinoly/webinoly.conf
+
+# Apply restored settings
+sudo webinoly -server-reset
+```
+
+## Configuration validation
+
+Verify configuration syntax:
+
+```bash
+# Test Nginx configuration
+sudo nginx -t
+
+# Test PHP-FPM configuration
+sudo php-fpm8.4 -t
+
+# Full system verification
+sudo webinoly -verify
+```
+
+## Troubleshooting
+
+### Configuration not applied
+
+1. Verify changes were saved:
+   ```bash
+   sudo cat /opt/webinoly/webinoly.conf | grep variable-name
+   ```
+
+2. Ensure server reset was run:
+   ```bash
+   sudo webinoly -server-reset
+   ```
+
+3. Check for syntax errors:
+   ```bash
+   sudo nginx -t
+   sudo php-fpm8.4 -t
+   ```
+
+### Reset to defaults
+
+Restore original Webinoly defaults:
+
+```bash
+# Comment out custom values
+sudo nano /opt/webinoly/webinoly.conf
+# Add # before each custom setting
+
+# Apply defaults
+sudo webinoly -server-reset
+```
+
+### Service restart issues
+
+If services fail to restart after configuration changes:
+
+```bash
+# Check service status
+sudo systemctl status nginx
+sudo systemctl status php8.4-fpm
+sudo systemctl status mysql
+
+# View error logs
+sudo tail -f /var/log/nginx/error.log
+sudo tail -f /var/log/php8.4-fpm.log
+sudo tail -f /var/log/mysql/error.log
+```
+
+## Best practices
+
+<Note>
+  **Configuration tips**:
+  1. Always backup before making changes
+  2. Test changes in development first
+  3. Document custom settings with comments
+  4. Use version control for configuration file
+  5. Keep default values commented for reference
+  6. Review configuration after Webinoly updates
+  7. Use `sudo webinoly -verify` regularly
+  8. Monitor logs after applying changes
+</Note>

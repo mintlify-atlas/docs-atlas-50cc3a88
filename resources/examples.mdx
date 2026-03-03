@@ -1,0 +1,673 @@
+---
+title: "Usage Examples & Recipes"
+description: "Real-world examples and common use cases for Webinoly"
+---
+
+## Getting Started Examples
+
+<CardGroup cols={2}>
+  <Card title="Basic Setup" icon="rocket" href="#basic-lemp-stack">
+    Complete LEMP stack installation
+  </Card>
+  <Card title="WordPress Site" icon="wordpress" href="#wordpress-deployment">
+    Deploy a WordPress site
+  </Card>
+  <Card title="Multi-Site Setup" icon="server" href="#hosting-multiple-sites">
+    Host multiple websites
+  </Card>
+  <Card title="Reverse Proxy" icon="arrows-turn-right" href="#reverse-proxy-setup">
+    Set up reverse proxy for Node.js/React
+  </Card>
+</CardGroup>
+
+---
+
+## Basic LEMP Stack
+
+### Quick Installation
+
+Install a complete LEMP stack with optimized settings:
+
+```bash
+# Download and run the installer
+wget -qO weby qrok.es/wy && sudo bash weby
+
+# Wait for installation to complete
+# Follow the prompts to configure your setup
+```
+
+### What Gets Installed
+
+- **NGINX**: Latest stable with HTTP/3 support
+- **MariaDB 11.8**: Default database engine
+- **PHP 8.4**: Latest PHP with common extensions
+- **Let's Encrypt**: Automatic SSL certificate management
+- **Redis**: Object caching support
+- **Postfix**: Email delivery
+
+---
+
+## WordPress Deployment
+
+### Simple WordPress Site
+
+Create a basic WordPress site with SSL:
+
+```bash
+# Create WordPress site
+sudo site example.com -wp
+
+# Site is created with:
+# - Automatic SSL via Let's Encrypt
+# - WordPress latest version
+# - MySQL database and user
+# - NGINX optimized configuration
+```
+
+### WordPress with Performance Optimization
+
+Deploy WordPress with full caching and optimization:
+
+```bash
+# Create WordPress site with FastCGI cache
+sudo site example.com -wp -cache
+
+# Enable Redis object cache
+sudo site example.com -redis=on
+
+# Enable HTTP/3 for better performance
+sudo site example.com -http3=on
+```
+
+**Expected Result**: Dramatically faster page loads and better Google PageSpeed scores.
+
+### WordPress Multisite Network
+
+#### Subdomain Multisite
+
+```bash
+# Create subdomain multisite
+sudo site example.com -wp -multisite=subdomain
+
+# Now you can create:
+# - site1.example.com
+# - site2.example.com
+# - site3.example.com
+```
+
+#### Subdirectory Multisite
+
+```bash
+# Create subdirectory multisite
+sudo site example.com -wp -multisite=subdirectory
+
+# Sites will be:
+# - example.com/site1
+# - example.com/site2
+# - example.com/site3
+```
+
+### WordPress in Subfolder
+
+```bash
+# Install WordPress in a subfolder
+sudo site example.com -wp=/blog
+
+# Your WordPress will be at:
+# https://example.com/blog
+
+# Main site can be different content type
+sudo site example.com -html
+```
+
+---
+
+## Hosting Multiple Sites
+
+### Different Content Types
+
+Host multiple sites with different configurations:
+
+```bash
+# WordPress marketing site
+sudo site marketing.example.com -wp -cache
+
+# Static HTML landing page
+sudo site landing.example.com -html
+
+# PHP application
+sudo site app.example.com -php
+
+# Node.js API (reverse proxy)
+sudo site api.example.com -proxy=http://localhost:3000
+```
+
+### Multiple PHP Versions
+
+Run sites with different PHP versions:
+
+```bash
+# Install multiple PHP versions
+sudo stack -php=8.4
+sudo stack -php=8.2
+sudo stack -php=7.4
+
+# Create sites with specific versions
+sudo site modern-app.com -php=8.4
+sudo site legacy-app.com -php=7.4
+sudo site wordpress.com -wp -php=8.2
+```
+
+### Parked Domains
+
+Point multiple domains to the same site:
+
+```bash
+# Main site
+sudo site example.com -wp
+
+# Park additional domains
+sudo site example.net -parked=example.com
+sudo site example.org -parked=example.com
+
+# All domains serve the same content
+```
+
+---
+
+## Reverse Proxy Setup
+
+### Node.js Application
+
+Proxy requests to a Node.js application:
+
+```bash
+# Start your Node.js app on port 3000
+# Then create reverse proxy
+sudo site app.example.com -proxy=http://localhost:3000
+
+# With SSL
+sudo site app.example.com -proxy=http://localhost:3000 -ssl=on
+
+# With caching
+sudo site app.example.com -proxy=http://localhost:3000 -proxy-cache
+```
+
+### React/Vue SPA
+
+Serve a React or Vue application:
+
+```bash
+# Build your React/Vue app
+npm run build
+
+# For development server
+sudo site react-app.com -proxy=http://localhost:5173
+
+# For production (serve built files)
+sudo site react-app.com -html
+# Then copy build files to /var/www/react-app.com/htdocs/
+```
+
+### Multiple Backend Services
+
+Proxy different paths to different services:
+
+```bash
+# Main site
+sudo site example.com -html
+
+# API endpoint
+sudo site example.com -proxy=http://localhost:3000 -path=/api
+
+# Admin panel
+sudo site example.com -proxy=http://localhost:8080 -path=/admin
+
+# WordPress blog
+sudo site example.com -wp=/blog
+```
+
+---
+
+## SSL & Security
+
+### Free SSL with Let's Encrypt
+
+```bash
+# SSL is automatic for new sites
+sudo site example.com -wp
+
+# Enable SSL for existing site
+sudo site example.com -ssl=on
+
+# Wildcard SSL certificate
+sudo site example.com -ssl=wildcard
+
+# Staging certificate (for testing)
+sudo site example.com -ssl=staging
+```
+
+### HTTP Authentication
+
+Protect your site with basic authentication:
+
+```bash
+# Add authentication
+sudo httpauth example.com -add
+
+# You'll be prompted for username and password
+# Perfect for staging sites or admin areas
+
+# Remove authentication
+sudo httpauth example.com -delete
+```
+
+### Custom Security Headers
+
+```bash
+# Webinoly includes security headers by default
+# Located in /etc/nginx/common/headers-*.conf
+
+# Headers include:
+# - X-Frame-Options
+# - X-Content-Type-Options
+# - X-XSS-Protection
+# - Referrer-Policy
+# - Strict-Transport-Security
+```
+
+---
+
+## Database Management
+
+### Working with Databases
+
+```bash
+# Create database and user
+sudo db -create
+
+# Create with specific name
+sudo db -create=mydb,myuser,mypassword
+
+# Delete database
+sudo db -delete=mydb
+
+# Import database
+sudo db -import=mydb,/path/to/backup.sql
+
+# Export database
+sudo db -export=mydb,/path/to/backup.sql
+```
+
+### External Database
+
+Connect WordPress to external database:
+
+```bash
+# During site creation
+sudo site example.com -wp \
+  -external-db=[dbuser,dbpass,dbhost:3306]
+
+# Example with AWS RDS
+sudo site example.com -wp \
+  -external-db=[admin,SecurePass123,mydb.abc123.us-east-1.rds.amazonaws.com:3306]
+```
+
+### Database Backup
+
+```bash
+# Backup all databases
+sudo backup -db
+
+# Backup specific database
+sudo backup -db=wordpress_db
+
+# Automated daily backups
+sudo backup -auto=on
+```
+
+---
+
+## Caching Strategies
+
+### FastCGI Cache (WordPress)
+
+```bash
+# Enable FastCGI cache
+sudo site example.com -cache=on
+
+# Configure cache settings
+# Edit /etc/nginx/conf.d/fastcgi-cache.conf
+
+# Clear cache
+sudo site example.com -cache=clear
+
+# Disable cache
+sudo site example.com -cache=off
+```
+
+### Redis Object Cache
+
+```bash
+# Install Redis
+sudo stack -redis
+
+# Enable for WordPress site
+sudo site example.com -redis=on
+
+# This installs Redis plugin automatically
+# and configures wp-config.php
+
+# Monitor Redis
+redis-cli monitor
+```
+
+### Proxy Cache
+
+```bash
+# Enable proxy cache for reverse proxy
+sudo site api.example.com \
+  -proxy=http://localhost:3000 \
+  -proxy-cache
+
+# Configure cache duration in
+# /etc/nginx/apps.d/api.example.com-proxy.conf
+```
+
+---
+
+## Backup & Migration
+
+### Site Backup
+
+```bash
+# Backup single site
+sudo backup example.com
+
+# Backup with database
+sudo backup example.com -db
+
+# Backup to remote location (S3, Dropbox, etc.)
+sudo backup example.com -remote
+```
+
+### Site Restoration
+
+```bash
+# List available backups
+sudo backup -list
+
+# Restore site
+sudo restore example.com
+
+# Restore from specific backup
+sudo restore example.com -backup=example.com-2024-01-15.tar.gz
+```
+
+### Server Cloning
+
+Clone entire server to another machine:
+
+```bash
+# On source server - create full backup
+sudo backup -all
+
+# Copy backup to new server
+scp /var/webinoly/backups/* user@newserver:/tmp/
+
+# On new server - install Webinoly first
+wget -qO weby qrok.es/wy && sudo bash weby
+
+# Restore all sites
+sudo restore -all
+```
+
+---
+
+## Monitoring & Logs
+
+### Real-time Log Viewing
+
+```bash
+# Follow access logs
+sudo log example.com -watch
+
+# Follow error logs
+sudo log example.com -error -watch
+
+# View last 100 lines
+sudo log example.com -lines=100
+```
+
+### Server Status
+
+```bash
+# Check Webinoly status
+sudo webinoly -info
+
+# Check NGINX status
+sudo service nginx status
+
+# Check PHP-FPM status
+sudo service php8.4-fpm status
+
+# Check MySQL status
+sudo service mysql status
+```
+
+### Performance Monitoring
+
+```bash
+# Monitor server resources
+htop
+
+# Monitor NGINX connections
+sudo nginx -t && curl http://localhost/nginx_status
+
+# Monitor PHP-FPM pools
+sudo service php8.4-fpm status
+```
+
+---
+
+## Advanced Configurations
+
+### Custom NGINX Configuration
+
+```bash
+# Create custom configuration
+sudo nano /etc/nginx/apps.d/example.com-custom.conf
+
+# Include in site config
+# Add to /etc/nginx/sites-available/example.com:
+# include apps.d/example.com-custom.conf;
+
+# Test configuration
+sudo nginx -t
+
+# Reload NGINX
+sudo service nginx reload
+```
+
+### PHP Configuration
+
+```bash
+# Edit PHP-FPM pool
+sudo nano /etc/php/8.4/fpm/pool.d/www.conf
+
+# Edit PHP settings
+sudo nano /etc/php/8.4/fpm/php.ini
+
+# Common tweaks:
+# memory_limit = 256M
+# max_execution_time = 300
+# upload_max_filesize = 64M
+# post_max_size = 64M
+
+# Restart PHP-FPM
+sudo service php8.4-fpm restart
+```
+
+### Custom Headers
+
+```bash
+# Add custom headers
+sudo nano /etc/nginx/apps.d/example.com-headers.conf
+
+# Example content:
+add_header X-Custom-Header "My Value" always;
+add_header Access-Control-Allow-Origin "*" always;
+
+# Include in site config and reload
+sudo service nginx reload
+```
+
+---
+
+## Production Best Practices
+
+### Initial Server Setup
+
+```bash
+# 1. Update system
+sudo apt update && sudo apt upgrade -y
+
+# 2. Install Webinoly
+wget -qO weby qrok.es/wy && sudo bash weby
+
+# 3. Configure firewall
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 22/tcp
+sudo ufw enable
+
+# 4. Set up automated backups
+sudo backup -auto=on -remote
+
+# 5. Configure monitoring
+sudo webinoly -email=admin@example.com
+```
+
+### WordPress Production Setup
+
+```bash
+# Create optimized WordPress site
+sudo site example.com -wp -cache
+
+# Enable Redis
+sudo site example.com -redis=on
+
+# Enable HTTP/3
+sudo site example.com -http3=on
+
+# Force HTTPS
+sudo site example.com -force-www=on
+
+# Enable automated backups
+sudo backup example.com -auto=daily
+
+# Set up monitoring
+sudo log example.com -watch &
+```
+
+### Security Hardening
+
+```bash
+# 1. Enable HTTP authentication for wp-admin
+sudo httpauth example.com -add=/wp-admin
+
+# 2. Disable XML-RPC if not needed
+# Add to /etc/nginx/apps.d/example.com-custom.conf:
+location = /xmlrpc.php {
+    deny all;
+    access_log off;
+    log_not_found off;
+}
+
+# 3. Rate limiting
+# Edit /etc/nginx/nginx.conf
+# Add:
+limit_req_zone $binary_remote_addr zone=one:10m rate=1r/s;
+
+# 4. Keep system updated
+sudo apt update && sudo apt upgrade -y
+sudo webinoly -update
+```
+
+---
+
+## Common Workflows
+
+### Development to Production
+
+```bash
+# On development server
+sudo backup dev-site.com
+
+# Transfer backup
+scp /var/webinoly/backups/dev-site.com* user@production:/tmp/
+
+# On production server
+sudo restore prod-site.com -backup=/tmp/dev-site.com-*.tar.gz
+
+# Update wp-config.php with production settings
+sudo nano /var/www/prod-site.com/wp-config.php
+```
+
+### Staging Environment
+
+```bash
+# Create staging subdomain
+sudo site staging.example.com -wp
+
+# Clone production site
+sudo backup example.com
+sudo restore staging.example.com -backup=example.com-*.tar.gz
+
+# Add HTTP authentication to staging
+sudo httpauth staging.example.com -add
+
+# Prevent search engines from indexing
+# Add to staging site header.php or use plugin
+```
+
+### Site Migration to New Server
+
+```bash
+# Old server
+sudo backup --all
+
+# New server - install Webinoly
+wget -qO weby qrok.es/wy && sudo bash weby
+
+# Transfer backups
+rsync -avz /var/webinoly/backups/ user@newserver:/tmp/backups/
+
+# New server - restore
+sudo restore --all
+
+# Update DNS records
+# Point domains to new server IP
+
+# Test sites work correctly
+# Decommission old server
+```
+
+---
+
+## Need More Examples?
+
+<CardGroup cols={2}>
+  <Card title="Documentation" icon="book" href="https://webinoly.com/documentation/">
+    Complete command reference
+  </Card>
+  <Card title="Community" icon="comments" href="https://webinoly.com/community/">
+    Share your use cases
+  </Card>
+  <Card title="GitHub" icon="code" href="https://github.com/QROkes/webinoly">
+    Browse the source code
+  </Card>
+  <Card title="Support" icon="life-ring" href="https://webinoly.com/premium/">
+    Get expert help
+  </Card>
+</CardGroup>

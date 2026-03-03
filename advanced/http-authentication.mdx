@@ -1,0 +1,359 @@
+---
+title: HTTP Authentication
+description: Secure your sites and admin panels with HTTP Basic Authentication
+---
+
+HTTP Authentication adds an extra layer of security to your sites by requiring username and password before accessing content. This is particularly useful for development sites, admin panels, and sensitive areas.
+
+## User Management
+
+### Add Authentication User
+
+Create a new HTTP authentication user:
+
+```bash
+# Interactive mode
+sudo httpauth -add
+
+# With credentials
+sudo httpauth -add=[username,password]
+
+# For specific domain
+sudo httpauth example.com -add=[username,password]
+```
+
+<Tip>
+Passwords are encrypted using OpenSSL and stored securely in `.htpasswd` files.
+</Tip>
+
+### Delete User
+
+```bash
+# Interactive mode
+sudo httpauth -delete
+
+# Specify username
+sudo httpauth -delete=username
+
+# For specific domain
+sudo httpauth example.com -delete=username
+```
+
+### List Users
+
+```bash
+# List global users
+sudo httpauth -list
+
+# List users for specific domain
+sudo httpauth example.com -list
+```
+
+## Protect Paths
+
+Secure specific URLs or directories with HTTP authentication.
+
+### Protect a Path
+
+```bash
+# Protect specific path
+sudo httpauth example.com -path=/admin
+
+# Protect exact path (no subdirectories)
+sudo httpauth example.com -path=/api -exact
+
+# Protect site root
+sudo httpauth example.com -path=/
+```
+
+Protected paths are configured in `/etc/nginx/apps.d/[domain]-nginx.conf`
+
+### Remove Path Protection
+
+```bash
+# Remove protection from specific path
+sudo httpauth example.com -path=/admin -delete
+
+# Remove all protected paths
+sudo httpauth example.com -path -delete-all
+```
+
+### List Protected Paths
+
+```bash
+sudo httpauth example.com -list=protected
+```
+
+<Warning>
+Some paths are reserved and cannot be protected:
+- `/wp-admin` (use `-wp-admin` instead)
+- `/wp-content/uploads/`
+- `/favicon.ico`
+- `/robots.txt`
+- `/wp-login.php`
+- `/wp-config.txt`
+</Warning>
+
+## WordPress Admin Protection
+
+Special configuration for protecting WordPress admin areas.
+
+### Enable for Specific Site
+
+```bash
+# Enable WordPress admin authentication
+sudo httpauth example.com -wp-admin=on
+
+# Disable WordPress admin authentication
+sudo httpauth example.com -wp-admin=off
+```
+
+This protects:
+- `/wp-admin/` directory
+- `/wp-login.php` login page
+
+### Global WordPress Admin Setting
+
+Set default for all new WordPress sites:
+
+```bash
+# Enable globally for new sites
+sudo httpauth -wp-admin=on
+
+# Disable globally for new sites
+sudo httpauth -wp-admin=off
+```
+
+<Tip>
+Global settings only affect newly created sites. Existing sites are not modified.
+</Tip>
+
+### WordPress Subfolders
+
+```bash
+# Protect WordPress in subfolder
+sudo httpauth example.com -wp-admin=on -subfolder=/blog
+
+# Disable protection for subfolder
+sudo httpauth example.com -wp-admin=off -subfolder=/blog
+```
+
+## IP Whitelisting
+
+Bypass HTTP authentication for trusted IP addresses.
+
+### Add IP to Whitelist
+
+```bash
+# Interactive mode
+sudo httpauth -whitelist
+
+# Add specific IP
+sudo httpauth -whitelist=192.168.1.100
+
+# Add multiple IPs
+sudo httpauth -whitelist=192.168.1.100,192.168.1.101,192.168.1.102
+```
+
+Whitelisted IPs can access protected resources without authentication.
+
+### Remove IP from Whitelist
+
+```bash
+# Remove single IP
+sudo httpauth -whitelist=192.168.1.100 -delete
+
+# Remove multiple IPs
+sudo httpauth -whitelist=192.168.1.100,192.168.1.101 -delete
+
+# Remove all whitelisted IPs
+sudo httpauth -whitelist -delete-all
+```
+
+### List Whitelisted IPs
+
+```bash
+sudo httpauth -whitelist -list
+```
+
+Whitelist configuration: `/etc/nginx/apps.d/whitelist-acl.conf`
+
+## Authentication Files
+
+HTTP authentication credentials are stored in:
+
+**Global**: `/etc/nginx/.htpasswd`
+- Used for default server and global protection
+- Applies when no domain-specific file exists
+
+**Domain-specific**: `/etc/nginx/apps.d/.htpasswd-[domain]`
+- Credentials for specific domain
+- Automatically linked for www subdomain
+
+**Symlinks**: 
+- `/etc/nginx/apps.d/.htpasswd-www.[domain]` → `.htpasswd-[domain]`
+- Ensures authentication works for both www and non-www versions
+
+## Common Use Cases
+
+### Protect Staging Site
+
+```bash
+# Add user
+sudo httpauth staging.example.com -add=[admin,SecurePass123]
+
+# Protect entire site
+sudo httpauth staging.example.com -path=/
+
+# Whitelist office IP
+sudo httpauth -whitelist=203.0.113.10
+```
+
+### Secure WordPress Admin
+
+```bash
+# Add HTTP auth user
+sudo httpauth example.com -add=[wpuser,StrongPass456]
+
+# Enable WordPress admin protection
+sudo httpauth example.com -wp-admin=on
+
+# Whitelist your IP
+sudo httpauth -whitelist=203.0.113.20
+```
+
+### Protect API Endpoint
+
+```bash
+# Add API user
+sudo httpauth api.example.com -add=[apiuser,ApiKey789]
+
+# Protect API path
+sudo httpauth api.example.com -path=/v1 -exact
+```
+
+### Development Environment
+
+```bash
+# Create dev user
+sudo httpauth dev.example.com -add=[developer,DevPass321]
+
+# Protect entire dev site
+sudo httpauth dev.example.com -path=/
+
+# Whitelist development team IPs
+sudo httpauth -whitelist=203.0.113.30,203.0.113.31,203.0.113.32
+```
+
+## Security Considerations
+
+### Password Strength
+
+HTTP auth passwords should:
+- Be at least 8 characters
+- Contain uppercase and lowercase letters
+- Include numbers and special characters
+- Avoid common words or patterns
+
+### HTTPS Required
+
+<Warning>
+Always use HTTPS with HTTP authentication. Credentials are transmitted in base64 encoding (not encrypted) over HTTP.
+</Warning>
+
+Ensure SSL is enabled:
+```bash
+sudo site example.com -ssl=on
+```
+
+### Brute Force Protection
+
+Combine with fail2ban or rate limiting:
+
+```bash
+# Install fail2ban
+sudo apt install fail2ban
+
+# Configure jail for HTTP auth
+sudo nano /etc/fail2ban/jail.local
+```
+
+## Nginx Configuration
+
+HTTP authentication uses Nginx directives:
+
+```nginx
+location /protected {
+    include common/acl.conf;
+    try_files $uri $uri/ /index.php$is_args$args;
+}
+```
+
+The `acl.conf` file contains:
+```nginx
+auth_basic "Restricted Access";
+auth_basic_user_file /etc/nginx/apps.d/.htpasswd-example.com;
+satisfy any;
+include apps.d/whitelist-acl.conf;
+deny all;
+```
+
+## Troubleshooting
+
+### Authentication Not Working
+
+1. Verify user exists:
+   ```bash
+   sudo httpauth example.com -list
+   ```
+
+2. Check htpasswd file:
+   ```bash
+   cat /etc/nginx/apps.d/.htpasswd-example.com
+   ```
+
+3. Test Nginx configuration:
+   ```bash
+   sudo nginx -t
+   ```
+
+4. Reload Nginx:
+   ```bash
+   sudo systemctl reload nginx
+   ```
+
+### Whitelist Not Working
+
+1. Verify IP is whitelisted:
+   ```bash
+   sudo httpauth -whitelist -list
+   ```
+
+2. Check whitelist configuration:
+   ```bash
+   cat /etc/nginx/apps.d/whitelist-acl.conf
+   ```
+
+3. Verify your public IP:
+   ```bash
+   curl ifconfig.me
+   ```
+
+### Browser Not Prompting
+
+Clear browser cache and cookies, or test with:
+```bash
+curl -I -u username:password https://example.com/protected
+```
+
+## Best Practices
+
+1. **Unique Passwords**: Use different passwords for different users and sites
+2. **Regular Rotation**: Change passwords periodically
+3. **Whitelist Carefully**: Only whitelist static IPs you control
+4. **Combine Methods**: Use HTTP auth with WordPress auth for defense in depth
+5. **Monitor Access**: Check logs for failed authentication attempts
+   ```bash
+   sudo log example.com -error | grep "401"
+   ```
+6. **Remove When Not Needed**: Disable authentication when site goes live

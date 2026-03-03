@@ -1,0 +1,779 @@
+---
+title: "Migration Guide"
+description: "Comprehensive guide for migrating sites and servers to Webinoly"
+---
+
+## Overview
+
+This guide covers various migration scenarios when moving to Webinoly or between Webinoly servers.
+
+<CardGroup cols={2}>
+  <Card title="To Webinoly" icon="arrow-right" href="#migrating-to-webinoly">
+    Migrate from other control panels
+  </Card>
+  <Card title="Between Servers" icon="server" href="#server-to-server-migration">
+    Move between Webinoly servers
+  </Card>
+  <Card title="WordPress" icon="wordpress" href="#wordpress-migration">
+    WordPress-specific migration
+  </Card>
+  <Card title="Databases" icon="database" href="#database-migration">
+    Database migration strategies
+  </Card>
+</CardGroup>
+
+---
+
+## Migrating to Webinoly
+
+### From cPanel/Plesk
+
+Migrating from traditional control panels to Webinoly:
+
+#### Prerequisites
+
+<Steps>
+  <Step title="Prepare New Server">
+    - Fresh Ubuntu 24.04 or 22.04 installation
+    - Minimum 512 MB RAM (1GB+ recommended)
+    - Root access via SSH
+  </Step>
+  
+  <Step title="Install Webinoly">
+    ```bash
+    wget -qO weby qrok.es/wy && sudo bash weby
+    ```
+  </Step>
+  
+  <Step title="Create Site Structure">
+    ```bash
+    # For each site, create matching structure
+    sudo site example.com -wp  # or -php, -html
+    ```
+  </Step>
+</Steps>
+
+#### Migration Process
+
+**1. Export from cPanel/Plesk**
+
+```bash
+# In cPanel, create full backup
+# Download backup files via:
+# - Backup Wizard
+# - File Manager
+# - FTP/SFTP
+```
+
+**2. Transfer Files**
+
+```bash
+# From old server to new
+rsync -avz -e ssh user@old-server:/home/username/public_html/ \
+  /var/www/example.com/htdocs/
+
+# Or use SCP
+scp -r user@old-server:/home/username/public_html/* \
+  /var/www/example.com/htdocs/
+
+# Set correct permissions
+sudo chown -R www-data:www-data /var/www/example.com/
+sudo find /var/www/example.com/htdocs/ -type d -exec chmod 755 {} \;
+sudo find /var/www/example.com/htdocs/ -type f -exec chmod 644 {} \;
+```
+
+**3. Export Databases**
+
+```bash
+# On old server (via phpMyAdmin or command line)
+mysqldump -u username -p database_name > database_backup.sql
+
+# Transfer to new server
+scp database_backup.sql user@new-server:/tmp/
+```
+
+**4. Import to Webinoly**
+
+```bash
+# Import database
+sudo db -import=database_name,/tmp/database_backup.sql
+
+# Update WordPress wp-config.php if needed
+sudo nano /var/www/example.com/wp-config.php
+```
+
+**5. Update DNS**
+
+```bash
+# After testing, update DNS records
+# Point A record to new server IP
+# Wait for propagation (24-48 hours)
+```
+
+<Warning>
+  Keep your old server running until DNS propagation completes and you've verified everything works correctly.
+</Warning>
+
+### From Apache Servers
+
+Migrating from an Apache-based setup:
+
+#### Key Differences
+
+<AccordionGroup>
+  <Accordion title="Configuration Files">
+    - **Apache**: `.htaccess` files
+    - **NGINX**: Server block configurations in `/etc/nginx/sites-available/`
+    
+    NGINX doesn't use `.htaccess`. URL rewrites need converting to NGINX syntax.
+  </Accordion>
+  
+  <Accordion title="Rewrite Rules">
+    Apache `.htaccess` rules need conversion:
+    
+    **Apache:**
+    ```apache
+    RewriteEngine On
+    RewriteRule ^old-page$ /new-page [R=301,L]
+    ```
+    
+    **NGINX:**
+    ```nginx
+    rewrite ^/old-page$ /new-page permanent;
+    ```
+  </Accordion>
+</AccordionGroup>
+
+#### Migration Steps
+
+**1. Analyze Apache Configuration**
+
+```bash
+# On old server, identify special configurations
+cat /etc/apache2/sites-available/example.com.conf
+cat /var/www/html/.htaccess
+```
+
+**2. Convert Rewrite Rules**
+
+Use online converters or manual conversion:
+- [winginx.com/en/htaccess](https://winginx.com/en/htaccess) - Apache to NGINX converter
+- [nginx.viraptor.info](https://nginx.viraptor.info/) - Rewrite rule converter
+
+**3. Create Custom NGINX Configuration**
+
+```bash
+# Create custom config for site
+sudo nano /etc/nginx/apps.d/example.com-custom.conf
+
+# Add converted rules
+# Example:
+location /old-path {
+    return 301 /new-path;
+}
+
+# Include in site config is automatic
+# Test configuration
+sudo nginx -t
+
+# Reload NGINX
+sudo service nginx reload
+```
+
+### From Other LEMP Stacks
+
+Migrating from manual LEMP or other automated stacks:
+
+#### File Migration
+
+```bash
+# Copy files
+sudo rsync -avz /old/path/to/site/ /var/www/example.com/htdocs/
+
+# Fix permissions
+sudo chown -R www-data:www-data /var/www/example.com/
+```
+
+#### Database Migration
+
+```bash
+# Export from old
+sudo mysqldump -u root -p database_name > db_backup.sql
+
+# Import to Webinoly
+sudo mysql -u root -p < db_backup.sql
+
+# Or use Webinoly command
+sudo db -import=database_name,db_backup.sql
+```
+
+#### PHP Version Matching
+
+```bash
+# If old site uses specific PHP version
+sudo stack -php=8.2  # Install needed version
+
+# Create site with that version
+sudo site example.com -php=8.2
+```
+
+---
+
+## Server to Server Migration
+
+### Between Webinoly Servers
+
+Migrating between two Webinoly installations is straightforward:
+
+#### Full Server Migration
+
+**1. Backup Old Server**
+
+```bash
+# On old server
+sudo backup -all
+
+# This creates:
+# - All site files
+# - All databases
+# - All configurations
+```
+
+**2. Transfer Backups**
+
+```bash
+# Direct transfer
+sudo rsync -avz -e ssh /var/webinoly/backups/ \
+  user@new-server:/tmp/backups/
+
+# Or compress and transfer
+sudo tar -czf webinoly-full-backup.tar.gz /var/webinoly/backups/
+scp webinoly-full-backup.tar.gz user@new-server:/tmp/
+```
+
+**3. Prepare New Server**
+
+```bash
+# On new server
+# Install Webinoly with same components
+wget -qO weby qrok.es/wy && sudo bash weby
+
+# Install same PHP versions
+sudo stack -php=8.4
+sudo stack -php=8.2
+
+# Install same optional components
+sudo stack -redis
+```
+
+**4. Restore All Sites**
+
+```bash
+# On new server
+sudo restore -all
+
+# Or restore individual sites
+sudo restore example.com
+sudo restore site2.com
+```
+
+**5. Verify and Update DNS**
+
+```bash
+# Test sites work
+curl -H "Host: example.com" http://localhost
+
+# Update DNS records
+# Point domains to new server IP
+```
+
+#### Single Site Migration
+
+**Backup Specific Site**
+
+```bash
+# Old server
+sudo backup example.com
+
+# Backup includes:
+# - Site files
+# - Database
+# - NGINX configuration
+# - SSL certificates
+```
+
+**Transfer and Restore**
+
+```bash
+# Transfer
+scp /var/webinoly/backups/example.com-*.tar.gz \
+  user@new-server:/tmp/
+
+# New server - restore
+sudo site example.com -wp  # Create site structure first
+sudo restore example.com -backup=/tmp/example.com-*.tar.gz
+```
+
+### Version Compatibility
+
+<Note>
+  Current Webinoly version: **1.20.0** (from `/home/daytona/workspace/source/lib/general:7`)
+  
+  Server version: **1.12**
+</Note>
+
+**Upgrading During Migration**
+
+```bash
+# On old server (before backup)
+sudo webinoly -update
+
+# Verify version
+sudo webinoly -info
+
+# Then proceed with backup
+sudo backup -all
+```
+
+---
+
+## WordPress Migration
+
+### WordPress-Specific Steps
+
+#### Standard WordPress Site
+
+**1. Backup Current Site**
+
+```bash
+# Using WordPress plugins (on old server)
+# - UpdraftPlus
+# - All-in-One WP Migration
+# - Duplicator
+
+# Or command line
+sudo wp db export backup.sql --path=/var/www/html
+tar -czf wordpress-files.tar.gz /var/www/html/
+```
+
+**2. Create Site on Webinoly**
+
+```bash
+# New server
+sudo site example.com -wp
+```
+
+**3. Transfer and Restore**
+
+```bash
+# Transfer files
+scp wordpress-files.tar.gz backup.sql user@new-server:/tmp/
+
+# New server - extract
+cd /var/www/example.com/htdocs/
+sudo tar -xzf /tmp/wordpress-files.tar.gz --strip-components=1
+
+# Import database
+sudo db -import=wordpress_db,/tmp/backup.sql
+
+# Update wp-config.php
+sudo nano wp-config.php
+```
+
+**4. Update URLs**
+
+```bash
+# If domain stays same, no changes needed
+
+# If domain changes
+sudo wp search-replace 'old-domain.com' 'new-domain.com' \
+  --path=/var/www/example.com/htdocs/
+
+# Or use SQL
+sudo mysql -u admin -p wordpress_db
+UPDATE wp_options SET option_value = 
+  REPLACE(option_value, 'http://old-domain.com', 'http://new-domain.com');
+```
+
+#### WordPress Multisite
+
+**Migration Considerations**
+
+<AccordionGroup>
+  <Accordion title="Subdomain Multisite">
+    ```bash
+    # Create multisite structure
+    sudo site example.com -wp -multisite=subdomain
+    
+    # Transfer files and database
+    # Update wp-config.php and .htaccess
+    
+    # Update network URLs
+    sudo wp search-replace 'old-domain.com' 'new-domain.com' \
+      --network --path=/var/www/example.com/htdocs/
+    ```
+  </Accordion>
+  
+  <Accordion title="Domain Mapping">
+    If using domain mapping plugin:
+    
+    ```bash
+    # Update domain mapping tables
+    UPDATE wp_domain_mapping SET domain = 'new-domain.com' 
+      WHERE domain = 'old-domain.com';
+    
+    # Update site URLs
+    UPDATE wp_blogs SET domain = 'new-domain.com' 
+      WHERE domain = 'old-domain.com';
+    ```
+  </Accordion>
+</AccordionGroup>
+
+#### WooCommerce Sites
+
+**Additional Steps**
+
+```bash
+# 1. Put site in maintenance mode
+sudo wp maintenance-mode activate \
+  --path=/var/www/example.com/htdocs/
+
+# 2. Clear all caches before backup
+sudo site example.com -cache=clear
+
+# 3. Migrate as normal
+
+# 4. After migration, regenerate thumbnails
+sudo wp media regenerate --yes \
+  --path=/var/www/example.com/htdocs/
+
+# 5. Clear all caches
+sudo wp cache flush --path=/var/www/example.com/htdocs/
+sudo site example.com -cache=clear
+
+# 6. Disable maintenance mode
+sudo wp maintenance-mode deactivate \
+  --path=/var/www/example.com/htdocs/
+```
+
+---
+
+## Database Migration
+
+### MySQL/MariaDB Migration
+
+#### Same Database Engine
+
+```bash
+# Export all databases
+sudo mysqldump -u root -p --all-databases > all-databases.sql
+
+# Or specific database
+sudo mysqldump -u root -p database_name > database.sql
+
+# Transfer
+scp all-databases.sql user@new-server:/tmp/
+
+# Import
+sudo mysql -u root -p < /tmp/all-databases.sql
+```
+
+#### Between MySQL and MariaDB
+
+```bash
+# Export from MySQL
+mysqldump -u root -p --compatible=mariadb database_name > db.sql
+
+# Transfer and import to MariaDB
+sudo mariadb -u root -p database_name < db.sql
+
+# Or use Webinoly
+sudo db -import=database_name,db.sql
+```
+
+### Large Database Migration
+
+For databases over 1GB:
+
+```bash
+# Compress during export
+sudo mysqldump -u root -p database_name | gzip > db.sql.gz
+
+# Transfer compressed
+scp db.sql.gz user@new-server:/tmp/
+
+# Decompress and import
+gunzip < /tmp/db.sql.gz | sudo mysql -u root -p database_name
+```
+
+### External Database
+
+Migrating to external database service (AWS RDS, etc.):
+
+```bash
+# Create site with external DB
+sudo site example.com -wp \
+  -external-db=[admin,password,rds-host.amazonaws.com:3306]
+
+# Import data
+sudo mysql -h rds-host.amazonaws.com -P 3306 \
+  -u admin -p database_name < backup.sql
+```
+
+---
+
+## SSL Certificate Migration
+
+### Let's Encrypt Certificates
+
+**Between Webinoly Servers**
+
+```bash
+# Old server - backup certificates
+sudo tar -czf letsencrypt-backup.tar.gz /etc/letsencrypt/
+
+# Transfer
+scp letsencrypt-backup.tar.gz user@new-server:/tmp/
+
+# New server - restore
+sudo tar -xzf /tmp/letsencrypt-backup.tar.gz -C /
+
+# Renew to ensure they work
+sudo certbot renew
+```
+
+**Fresh Certificates**
+
+```bash
+# Let Webinoly generate new certificates
+sudo site example.com -ssl=on
+
+# Automatic and recommended approach
+```
+
+### Custom SSL Certificates
+
+```bash
+# Install custom certificate
+sudo site example.com -ssl=custom \
+  -ssl-crt=/path/to/certificate.crt \
+  -ssl-key=/path/to/private.key
+```
+
+---
+
+## Post-Migration Checklist
+
+<Steps>
+  <Step title="Verify All Sites">
+    ```bash
+    # Check site accessibility
+    curl -I https://example.com
+    
+    # Test SSL
+    openssl s_client -connect example.com:443
+    
+    # Check all pages work
+    ```
+  </Step>
+  
+  <Step title="Test Functionality">
+    - Forms submission
+    - Login/authentication
+    - Database connectivity
+    - Email sending
+    - API endpoints
+    - Media uploads
+  </Step>
+  
+  <Step title="Performance Checks">
+    ```bash
+    # Enable caching
+    sudo site example.com -cache=on
+    
+    # Monitor logs
+    sudo log example.com -watch
+    
+    # Check resource usage
+    htop
+    ```
+  </Step>
+  
+  <Step title="Enable Backups">
+    ```bash
+    # Setup automated backups
+    sudo backup -auto=on
+    
+    # Configure remote backup
+    sudo backup -remote=s3
+    ```
+  </Step>
+  
+  <Step title="Update DNS">
+    - Update A records
+    - Update AAAA records (if IPv6)
+    - Update MX records (if mail server)
+    - Verify propagation
+  </Step>
+  
+  <Step title="Monitoring">
+    ```bash
+    # Configure email alerts
+    sudo webinoly -email=admin@example.com
+    
+    # Monitor logs
+    sudo log example.com -watch
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Rollback Plan
+
+<Warning>
+  Always have a rollback plan before migration.
+</Warning>
+
+### Quick Rollback Steps
+
+**If Issues Occur**
+
+1. **Keep Old Server Running**
+   ```bash
+   # Don't delete old server until fully verified
+   # Keep it running for at least 7 days
+   ```
+
+2. **DNS Rollback**
+   ```bash
+   # Point DNS back to old server IP
+   # Update A records immediately
+   # TTL should be low (300s) during migration
+   ```
+
+3. **Communicate Downtime**
+   ```bash
+   # If issues persist, communicate with users
+   # Set up maintenance page
+   ```
+
+---
+
+## Migration Tools & Scripts
+
+### Useful Scripts
+
+**Pre-Migration Check Script**
+
+```bash
+#!/bin/bash
+# pre-migration-check.sh
+
+echo "=== Pre-Migration Checklist ==="
+echo "1. Disk Space:"
+df -h
+echo ""
+echo "2. Database Size:"
+mysql -u root -p -e "SELECT table_schema AS 'Database', 
+  ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) AS 'Size (MB)' 
+  FROM information_schema.TABLES GROUP BY table_schema;"
+echo ""
+echo "3. PHP Version:"
+php -v
+echo ""
+echo "4. Sites:"
+ls -la /var/www/
+```
+
+**Post-Migration Verification**
+
+```bash
+#!/bin/bash
+# verify-migration.sh
+
+echo "=== Post-Migration Verification ==="
+for site in $(ls /var/www/); do
+    echo "Checking $site..."
+    curl -I https://$site
+    echo ""
+done
+```
+
+---
+
+## Common Migration Issues
+
+<AccordionGroup>
+  <Accordion title="File Permissions Issues">
+    **Problem**: Files not accessible or uploadable
+    
+    **Solution**:
+    ```bash
+    sudo chown -R www-data:www-data /var/www/example.com/
+    sudo find /var/www/example.com/htdocs/ -type d -exec chmod 755 {} \;
+    sudo find /var/www/example.com/htdocs/ -type f -exec chmod 644 {} \;
+    ```
+  </Accordion>
+  
+  <Accordion title="Database Connection Errors">
+    **Problem**: WordPress can't connect to database
+    
+    **Solution**:
+    ```bash
+    # Verify database exists
+    sudo mysql -u root -p -e "SHOW DATABASES;"
+    
+    # Check wp-config.php credentials
+    sudo nano /var/www/example.com/wp-config.php
+    
+    # Test connection
+    sudo mysql -u dbuser -p database_name
+    ```
+  </Accordion>
+  
+  <Accordion title="Mixed Content Warnings">
+    **Problem**: HTTPS site loading HTTP resources
+    
+    **Solution**:
+    ```bash
+    # Update URLs in database
+    sudo wp search-replace 'http://example.com' 'https://example.com' \
+      --path=/var/www/example.com/htdocs/
+    
+    # Or use Really Simple SSL plugin
+    ```
+  </Accordion>
+  
+  <Accordion title="Permalink Issues">
+    **Problem**: 404 errors on WordPress pages
+    
+    **Solution**:
+    ```bash
+    # Flush permalinks
+    sudo wp rewrite flush --path=/var/www/example.com/htdocs/
+    
+    # Or reset in WordPress admin:
+    # Settings → Permalinks → Save Changes
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Support During Migration
+
+<CardGroup cols={2}>
+  <Card title="Documentation" icon="book" href="https://webinoly.com/documentation/">
+    Detailed command reference
+  </Card>
+  <Card title="Community" icon="users" href="https://webinoly.com/community/">
+    Get migration help from community
+  </Card>
+  <Card title="Premium Support" icon="headset" href="https://webinoly.com/premium/">
+    Professional migration assistance
+  </Card>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/QROkes/webinoly/issues">
+    Report migration problems
+  </Card>
+</CardGroup>

@@ -1,0 +1,472 @@
+---
+title: SSL/TLS Certificates
+description: Enable HTTPS with Let's Encrypt SSL certificates - automatic setup, renewal, wildcards, and custom certificates
+---
+
+Webinoly integrates with Let's Encrypt to provide free SSL/TLS certificates with automatic renewal. Enable HTTPS for your sites with a single command.
+
+## Enable SSL for a Site
+
+Enable SSL with Let's Encrypt:
+
+```bash
+sudo site example.com -ssl=on
+```
+
+<Steps>
+  <Step title="DNS Verification">
+    Before requesting a certificate:
+    - Ensure `example.com` is pointing to your server's IP
+    - Ensure `www.example.com` is also pointing to your server (for root domains)
+    - Wait for DNS propagation (can take up to 48 hours)
+  </Step>
+  
+  <Step title="Email Registration">
+    You'll be prompted for an email address (first time only):
+    ```
+    Please, enter an email to register your new certificate: user@example.com
+    ```
+    This email receives renewal notifications.
+  </Step>
+  
+  <Step title="Certificate Issuance">
+    Webinoly automatically:
+    - Requests certificate from Let's Encrypt
+    - Validates domain ownership
+    - Installs certificate
+    - Configures NGINX for HTTPS
+    - Sets up HTTP to HTTPS redirect
+  </Step>
+  
+  <Step title="Automatic Renewal">
+    Certificates automatically renew before expiration via:
+    - Certbot systemd timer
+    - Weekly cron job (backup)
+  </Step>
+</Steps>
+
+## Firewall Requirements
+
+<Warning>
+  For SSL to work, ensure these ports are open:
+  - **Port 80 (TCP)** - HTTP (required for Let's Encrypt validation)
+  - **Port 443 (TCP)** - HTTPS
+  - **Port 443 (UDP)** - HTTP/3 QUIC (optional, for HTTP/3 support)
+</Warning>
+
+## SSL Configuration Details
+
+When SSL is enabled, Webinoly automatically:
+
+### NGINX Configuration
+
+- Changes listen ports from 80 to 443
+- Enables SSL and HTTP/3 (QUIC)
+- Adds SSL certificate paths
+- Includes HTTPS security headers
+- Creates HTTP to HTTPS redirect
+
+### Security Features
+
+- TLS 1.2 and 1.3 only
+- Strong cipher suites
+- OCSP stapling
+- HSTS headers
+- HTTP/3 support
+
+## Subdomain SSL
+
+Enable SSL for a subdomain:
+
+```bash
+sudo site blog.example.com -ssl=on
+```
+
+Subdomains receive single-domain certificates (www is not included).
+
+## Wildcard Certificates
+
+Create a wildcard certificate that covers all subdomains:
+
+```bash
+sudo site example.com -ssl=on -wildcard
+```
+
+This creates a certificate for:
+- `example.com`
+- `*.example.com` (all first-level subdomains)
+
+<Warning>
+  - Wildcard certificates require DNS validation (manual process)
+  - You'll need to add a TXT record to your DNS
+  - Wildcard certs only cover first-level subdomains (not `sub.domain.example.com`)
+  - Cannot be renewed automatically (manual renewal required)
+</Warning>
+
+### Manual DNS Validation
+
+During wildcard certificate creation:
+
+1. Let's Encrypt provides a TXT record:
+   ```
+   _acme-challenge.example.com = "random_verification_string"
+   ```
+
+2. Add this TXT record to your DNS
+
+3. Wait for DNS propagation
+
+4. Press Enter to continue validation
+
+### Add Site to Existing Wildcard
+
+Add a subdomain to an existing wildcard certificate:
+
+```bash
+sudo site blog.example.com -ssl=on -add-to-wildcard=example.com
+```
+
+Requirements:
+- Wildcard certificate must already exist for `example.com`
+- Only first-level subdomains are supported
+- No additional validation required
+
+## Parked and Mapped Domains
+
+For parked or mapped domains, specify the main domain:
+
+```bash
+sudo site alias.com -ssl=on -root=example.com
+```
+
+This uses the document root from `example.com` for SSL validation.
+
+## Reverse Proxy SSL
+
+For reverse proxy sites with custom root path:
+
+```bash
+sudo site example.com -ssl=on -root-path=/opt/myapp
+```
+
+Webinoly uses the specified path for Let's Encrypt validation files.
+
+## Manual Certificate Validation
+
+For advanced scenarios, use manual validation:
+
+<Tabs>
+  <Tab title="HTTP Challenge">
+    ```bash
+    sudo site example.com -ssl=on -manual=http
+    ```
+    
+    You'll manually complete the HTTP challenge.
+  </Tab>
+  
+  <Tab title="DNS Challenge">
+    ```bash
+    sudo site example.com -ssl=on -manual=dns
+    ```
+    
+    You'll manually add DNS TXT records for validation.
+  </Tab>
+</Tabs>
+
+<Warning>
+  Manual certificates are NOT automatically renewed. You must manually renew them before expiration.
+</Warning>
+
+## Custom SSL Certificates
+
+Use your own SSL certificates (e.g., from a commercial CA):
+
+```bash
+sudo site example.com -ssl=on -ssl-crt=/path/to/cert.crt -ssl-key=/path/to/private.key
+```
+
+<CodeGroup>
+```bash Full Chain Certificate
+sudo site example.com -ssl=on \
+  -ssl-crt=/etc/ssl/certs/example.com.crt \
+  -ssl-key=/etc/ssl/private/example.com.key
+```
+
+```bash From External CA
+sudo site example.com -ssl=on \
+  -ssl-crt=/path/to/fullchain.pem \
+  -ssl-key=/path/to/privkey.pem
+```
+</CodeGroup>
+
+Custom certificates:
+- Are marked in NGINX config with `# WebinolySSLCustomCert`
+- Don't auto-renew (you manage renewal)
+- Can be from any certificate authority
+
+## Certificate Renewal
+
+### Automatic Renewal
+
+Certificates automatically renew via:
+
+1. **Certbot systemd timer** (primary method)
+2. **Cron job** (backup, runs weekly)
+
+Webinoly creates a cron job:
+```cron
+15 3 * * 7 certbot renew
+```
+
+And a deploy hook at:
+```
+/etc/letsencrypt/renewal-hooks/deploy/99-webinoly-deploy
+```
+
+This hook reloads NGINX after successful renewal.
+
+### Manual Renewal
+
+Renew all certificates:
+
+```bash
+sudo site -ssl=renew
+```
+
+### Force Renewal
+
+Force renewal of a specific certificate:
+
+```bash
+sudo site example.com -ssl=force-renewal
+```
+
+Force renewal of all certificates:
+
+```bash
+sudo site -ssl=force-renewal-all
+```
+
+<Warning>
+  Let's Encrypt has rate limits:
+  - 50 certificates per registered domain per week
+  - 5 duplicate certificates per week
+  - See: https://letsencrypt.org/docs/rate-limits/
+  
+  Avoid unnecessary forced renewals to stay within limits.
+</Warning>
+
+## Disable SSL
+
+Disable SSL for a site:
+
+```bash
+sudo site example.com -ssl=off
+```
+
+You'll be prompted whether to:
+- **Revoke and delete** certificate (permanent)
+- **Keep** certificate (temporarily disable, can re-enable later)
+
+### Revoke Certificate
+
+To revoke and delete:
+
+```bash
+sudo site example.com -ssl=off -revoke=on
+```
+
+To keep certificate:
+
+```bash
+sudo site example.com -ssl=off -revoke=off
+```
+
+## Test Certificates (Staging)
+
+For testing, use Let's Encrypt staging environment:
+
+```bash
+sudo site example.com -ssl=on -test-cert
+```
+
+Staging certificates:
+- Don't count against rate limits
+- Are not trusted by browsers (will show warning)
+- Should only be used for testing
+- Can be renewed/revoked freely
+
+<Warning>
+  Staging certificates will cause browser security warnings. Never use in production.
+</Warning>
+
+## SSL and Force Redirect
+
+When SSL is enabled, HTTP to HTTPS redirect is automatic. Force redirect (www/non-www) works with SSL:
+
+```bash
+# Force www with SSL
+sudo site example.com -ssl=on
+sudo site example.com -force-redirect=www
+
+# Force non-www with SSL  
+sudo site example.com -ssl=on
+sudo site example.com -force-redirect=root
+```
+
+See [Site Management](/sites/site-management) for more on force redirects.
+
+## WordPress SSL Integration
+
+For WordPress sites, enabling SSL automatically:
+
+- Updates database URLs to HTTPS
+- Respects force redirect settings (www/non-www)
+- Updates both `home` and `siteurl` options
+
+```bash
+sudo site example.com -ssl=on
+```
+
+WordPress database is automatically updated to use HTTPS URLs.
+
+## Certificate Locations
+
+Let's Encrypt certificates are stored at:
+
+```bash
+/etc/letsencrypt/live/example.com/
+├── cert.pem          # Certificate only
+├── chain.pem         # Certificate chain
+├── fullchain.pem     # Certificate + chain (used by NGINX)
+├── privkey.pem       # Private key (used by NGINX)
+└── README            # Let's Encrypt info
+```
+
+NGINX configuration references:
+```nginx
+ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+ssl_trusted_certificate /etc/letsencrypt/live/example.com/chain.pem;
+```
+
+## Orphan Certificate Removal
+
+If a site is deleted but certificate remains:
+
+```bash
+sudo site example.com -ssl=off
+```
+
+Webinoly automatically detects orphan certificates and offers to revoke them.
+
+## SSL Information
+
+Check SSL status for a site:
+
+```bash
+sudo site example.com -info
+```
+
+Shows:
+- SSL enabled/disabled
+- Certificate type (Let's Encrypt, custom, wildcard)
+- Staging/production status
+- Expiration date
+
+## Troubleshooting
+
+### Certificate Request Failed
+
+**DNS not propagated:**
+```bash
+# Verify DNS
+dig example.com
+dig www.example.com
+```
+Wait for DNS to propagate before requesting certificate.
+
+**Firewall blocking:**
+```bash
+# Check if port 80 is accessible
+sudo ufw status
+```
+Ensure ports 80 and 443 are open.
+
+**Rate limit exceeded:**
+Wait before trying again. Use `-test-cert` for testing.
+
+### Certificate Not Renewing
+
+**Check certbot timer:**
+```bash
+sudo systemctl status certbot.timer
+sudo systemctl list-timers
+```
+
+**Check cron job:**
+```bash
+sudo crontab -l
+```
+
+**Manual renewal test:**
+```bash
+sudo certbot renew --dry-run
+```
+
+### NGINX Not Reloading After Renewal
+
+Verify deploy hook exists:
+```bash
+ls -la /etc/letsencrypt/renewal-hooks/deploy/
+```
+
+If missing, Webinoly recreates it on next SSL operation.
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Always Use SSL" icon="lock">
+    - Enable SSL for all production sites
+    - Use automatic renewal (don't use manual certs unless necessary)
+    - Monitor certificate expiration dates
+    - Keep contact email up to date
+  </Card>
+  
+  <Card title="Test First" icon="flask">
+    - Use `-test-cert` for testing configurations
+    - Test on staging sites before production
+    - Verify DNS before requesting certificates
+    - Don't exceed rate limits
+  </Card>
+  
+  <Card title="Wildcard Usage" icon="asterisk">
+    - Only use wildcards if you have many subdomains
+    - Remember wildcards require manual renewal
+    - Consider individual certs for important subdomains
+    - Document wildcard DNS validation process
+  </Card>
+  
+  <Card title="Monitoring" icon="chart-line">
+    - Monitor renewal logs regularly
+    - Set up expiration alerts (Let's Encrypt emails)
+    - Check NGINX error logs after renewals
+    - Verify HTTPS works after renewal
+  </Card>
+</CardGroup>
+
+## Security Headers
+
+Webinoly automatically includes security headers when SSL is enabled:
+
+- `Strict-Transport-Security` (HSTS)
+- `X-Frame-Options`
+- `X-Content-Type-Options`
+- `Referrer-Policy`
+- SSL session caching
+- OCSP stapling
+
+These headers are configured in:
+```
+/etc/nginx/common/headers-https.conf
+```

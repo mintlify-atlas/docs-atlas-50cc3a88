@@ -1,0 +1,387 @@
+---
+title: Server Management
+description: Manage and configure your Webinoly server settings and services
+---
+
+## Overview
+
+Webinoly provides comprehensive server management commands to configure, monitor, and maintain your NGINX web server on Ubuntu.
+
+## Server Information
+
+### View System Information
+
+Display detailed information about your server configuration:
+
+```bash
+webinoly -info
+```
+
+This displays:
+- Operating system details (version, codename, architecture)
+- Hardware resources (RAM, SWAP, CPU cores)
+- Disk usage
+- NGINX configuration (version, workers, cache settings)
+- PHP settings (version, memory limits, process manager)
+- MySQL/MariaDB information
+- Webinoly configuration
+- Installed tools (Certbot, Duplicity, Redis, Memcached, phpMyAdmin)
+
+### Check Version
+
+Display current Webinoly and stack versions:
+
+```bash
+webinoly -version
+# or
+webinoly -v
+```
+
+## Server Reset and Configuration
+
+### Reset Server Configuration
+
+Reset and regenerate server configuration files to default optimized settings:
+
+<Warning>
+This will overwrite any manual changes you made to configuration files. Always backup custom configurations before resetting.
+</Warning>
+
+```bash
+# Reset all components
+webinoly -server-reset=all
+
+# Reset specific component
+webinoly -server-reset=nginx
+webinoly -server-reset=php
+webinoly -server-reset=mysql
+webinoly -server-reset=os
+
+# Reset file permissions
+webinoly -server-reset=permissions
+
+# Regenerate configuration file
+webinoly -server-reset=confile
+```
+
+**Available options:**
+- `all` - Reset all server components
+- `nginx` - Regenerate NGINX configuration files
+- `php` - Regenerate PHP configuration files
+- `mysql` - Reset MySQL/MariaDB settings
+- `os` - Reset operating system optimization settings
+- `permissions` - Fix file and directory permissions
+- `confile` - Regenerate Webinoly configuration file
+
+## Cache Management
+
+### Clear All Caches
+
+Clear all server caches at once:
+
+```bash
+webinoly -clear-cache=all
+```
+
+### Clear Specific Cache
+
+```bash
+# Clear FastCGI cache
+webinoly -clear-cache=fastcgi
+
+# Clear Redis cache
+webinoly -clear-cache=redis
+
+# Clear Memcached
+webinoly -clear-cache=memcached
+
+# Clear OPcache
+webinoly -clear-cache=opcache
+
+# Clear site-specific cache
+webinoly -clear-cache=example.com
+```
+
+## Database Management
+
+### View Database Credentials
+
+Display stored database passwords:
+
+```bash
+webinoly -dbpass
+```
+
+Shows:
+- Localhost credentials (root and admin users)
+- External database credentials (if configured)
+
+### Change MySQL Password
+
+Change password for a MySQL/MariaDB user:
+
+```bash
+# Interactive mode
+webinoly -mysql-password
+
+# Non-interactive mode
+webinoly -mysql-password=[username,newpassword]
+```
+
+**Requirements:**
+- Password must be at least 8 characters
+- Cannot contain single quotes
+- User must exist in the database
+
+### MySQL Public Access
+
+Enable or disable remote MySQL access:
+
+<Warning>
+Enabling public access exposes your database to the internet. Always configure firewall rules and use strong passwords.
+</Warning>
+
+```bash
+# Enable public access (bind to all interfaces)
+webinoly -mysql-public-access=on
+
+# Enable with specific bind address
+webinoly -mysql-public-access=on -bind=192.168.1.100
+
+# Enable with multiple IP addresses (MariaDB 10.11+)
+webinoly -mysql-public-access=on -bind=192.168.1.100,192.168.1.101
+
+# Disable public access
+webinoly -mysql-public-access=off
+
+# Create master user for remote access
+webinoly -mysql-public-access=on -create-master-user
+webinoly -mysql-public-access=on -create-master-user=[username,password]
+```
+
+## Tools Configuration
+
+### Change Tools Port
+
+Modify the port used to access server tools (phpMyAdmin, PHP info, etc.):
+
+```bash
+# Interactive mode
+webinoly -tools-port
+
+# Specify port directly
+webinoly -tools-port=9999
+```
+
+Valid port range: 1-65535
+
+### Configure Tools Site
+
+Assign a domain to access server tools instead of using port:
+
+```bash
+# Assign domain to tools
+webinoly -tools-site=tools.example.com
+
+# Reset to default (port-based access)
+webinoly -tools-site=default
+
+# Reset and rebuild tools site
+webinoly -tools-site=reset
+```
+
+**Requirements:**
+- Domain must already exist as a site
+- SSL is highly recommended for tools site
+
+### SFTP Access for www-data
+
+Enable or disable SFTP access for the www-data user:
+
+```bash
+# Enable SFTP access
+webinoly -sftp=on
+
+# Disable SFTP access
+webinoly -sftp=off
+```
+
+When enabled:
+- Creates `sftponly` group
+- Sets up chroot jail at `/var/www`
+- Copies SSH keys from current user (if available)
+- www-data user restricted to SFTP only (no shell access)
+
+## SMTP Configuration
+
+### Configure SMTP
+
+Setup SMTP relay for sending emails:
+
+```bash
+# Interactive setup
+webinoly -smtp
+
+# Non-interactive setup
+webinoly -smtp=[host,user,password,mainhostname]
+```
+
+**Requirements:**
+- Only TLS on port 587 is supported
+- Main hostname must be an existing site on your server
+
+### Remove SMTP Configuration
+
+```bash
+webinoly -smtp -purge
+```
+
+## IP Blocking
+
+Block or unblock IP addresses:
+
+```bash
+# Block an IP
+webinoly -blockip=192.168.1.100
+
+# Unblock an IP
+webinoly -blockip=192.168.1.100 -unblock
+
+# List blocked IPs
+webinoly -blockip=list
+```
+
+## Default Site Response
+
+Configure NGINX default response for undefined domains:
+
+```bash
+# Set to blackhole (444 response)
+webinoly -default-site=blackhole
+
+# Set specific site as default
+webinoly -default-site=example.com
+
+# Reset to default
+webinoly -default-site=default
+```
+
+## FastCGI Cache Settings
+
+Configure FastCGI cache timing:
+
+```bash
+# Set cache valid time
+webinoly -cache-valid=[200_time,other_time,inactive_time,max_size]
+
+# Example: 30m for 200, 5m for 3xx/4xx, 1h inactive, 2g max size
+webinoly -cache-valid=[30m,5m,1h,2g]
+```
+
+## Custom Headers
+
+Manage HTTP headers globally:
+
+```bash
+# Set Content Security Policy
+webinoly -custom-headers=csp,[policy]
+
+# Set Permissions Policy
+webinoly -custom-headers=permissions,[policy]
+
+# Set Cache-Control
+webinoly -custom-headers=cache-control,[directive]
+
+# Disable specific header
+webinoly -custom-headers=csp,off
+```
+
+## Dynamic Variables
+
+Set custom configuration variables:
+
+```bash
+# Set variable
+webinoly -dynvar=variable-name -value="variable value"
+
+# Interactive mode
+webinoly -dynvar=variable-name
+```
+
+## Timezone Configuration
+
+Set system and PHP timezone:
+
+```bash
+# Interactive mode
+webinoly -timezone
+
+# Direct specification
+webinoly -timezone=America/New_York
+```
+
+See [PHP timezones](https://www.php.net/manual/en/timezones.php) for valid values.
+
+## Update External Sources
+
+Update public suffix list and timezone database:
+
+```bash
+webinoly -external-sources-update
+```
+
+Updates:
+- Public Suffix List (domain validation)
+- Timezone Database (PHP timezones)
+
+## Email Notifications
+
+Configure email for server notifications:
+
+```bash
+webinoly -email=admin@example.com
+```
+
+## Service Management
+
+Webinoly automatically manages services, but you can manually control them:
+
+```bash
+# NGINX
+sudo systemctl status nginx
+sudo systemctl restart nginx
+sudo systemctl reload nginx
+
+# PHP-FPM
+sudo systemctl status php8.3-fpm
+sudo systemctl restart php8.3-fpm
+
+# MySQL/MariaDB
+sudo systemctl status mysql
+sudo systemctl restart mysql
+
+# Redis
+sudo systemctl status redis-server
+sudo systemctl restart redis-server
+
+# Memcached
+sudo systemctl status memcached
+sudo systemctl restart memcached
+```
+
+## Best Practices
+
+1. **Regular Backups**: Always backup before making configuration changes
+2. **Test Changes**: Use `-verify` after configuration changes
+3. **Monitor Resources**: Regularly check `-info` for resource usage
+4. **Security First**: Use blackhole default site and configure firewall
+5. **Update Regularly**: Keep system and Webinoly updated
+6. **Use HTTPS**: Enable SSL for tools site
+7. **Strong Passwords**: Use complex passwords for database users
+8. **Monitor Logs**: Regularly check logs for issues
+
+## Next Steps
+
+- [Troubleshooting](/operations/troubleshooting) - Diagnose and fix common issues
+- [Updates](/operations/updates) - Keep Webinoly up to date
+- [Verify Installation](/operations/troubleshooting#verify-installation) - Check system health

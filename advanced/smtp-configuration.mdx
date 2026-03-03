@@ -1,0 +1,397 @@
+---
+title: SMTP Configuration
+description: Configure email delivery with SMTP relay for WordPress and system notifications
+---
+
+Webinoly integrates Postfix SMTP relay to enable reliable email delivery from your server. This is essential for WordPress transactional emails, contact forms, and system notifications.
+
+## Prerequisites
+
+SMTP functionality requires:
+- Postfix mail server (installed with PHP stack)
+- SMTP service credentials (Gmail, SendGrid, Mailgun, etc.)
+- A valid domain name configured on your server
+
+## Install Postfix
+
+Postfix is included in the full PHP stack:
+
+```bash
+sudo stack -php
+```
+
+Or install separately:
+
+```bash
+sudo stack -postfix
+```
+
+## Configure SMTP
+
+### Interactive Setup
+
+Configure SMTP with the interactive wizard:
+
+```bash
+sudo webinoly -smtp
+```
+
+You'll be prompted for:
+1. **SMTP Host**: Your email provider's SMTP server (e.g., `smtp.gmail.com`)
+2. **User**: SMTP username or email address
+3. **Password**: SMTP password or app-specific password
+4. **Main Hostname/Domain**: Your primary domain for sending emails
+
+### Non-Interactive Setup
+
+Provide all credentials in one command:
+
+```bash
+sudo webinoly -smtp=[smtp.example.com,user@example.com,password,example.com]
+```
+
+Format: `[host,username,password,hostname]`
+
+<Warning>
+Webinoly only supports TLS on port 587. Ensure your SMTP provider supports STARTTLS on port 587.
+</Warning>
+
+## SMTP Provider Examples
+
+### Gmail
+
+1. Enable 2-factor authentication on your Google account
+2. Generate an app-specific password: https://myaccount.google.com/apppasswords
+3. Configure Webinoly:
+
+```bash
+sudo webinoly -smtp=[smtp.gmail.com,your-email@gmail.com,app-password,yourdomain.com]
+```
+
+<Tip>
+Gmail has a daily sending limit of 500 emails for free accounts. Consider a dedicated email service for high-volume sending.
+</Tip>
+
+### SendGrid
+
+1. Create a SendGrid account and API key
+2. Configure:
+
+```bash
+sudo webinoly -smtp=[smtp.sendgrid.net,apikey,your-api-key,yourdomain.com]
+```
+
+Note: Username is literally "apikey", password is your API key
+
+### Mailgun
+
+1. Create Mailgun account and obtain SMTP credentials
+2. Configure:
+
+```bash
+sudo webinoly -smtp=[smtp.mailgun.org,postmaster@your-domain.mailgun.org,smtp-password,yourdomain.com]
+```
+
+### Amazon SES
+
+1. Create SMTP credentials in AWS SES console
+2. Configure:
+
+```bash
+sudo webinoly -smtp=[email-smtp.us-east-1.amazonaws.com,AWS-ACCESS-KEY,AWS-SECRET-KEY,yourdomain.com]
+```
+
+### Postmark
+
+```bash
+sudo webinoly -smtp=[smtp.postmarkapp.com,your-server-token,your-server-token,yourdomain.com]
+```
+
+### Brevo (Sendinblue)
+
+```bash
+sudo webinoly -smtp=[smtp-relay.brevo.com,your-email@example.com,smtp-key,yourdomain.com]
+```
+
+## Configuration Files
+
+SMTP settings are stored in:
+
+**Main Config**: `/etc/postfix/main.cf`
+```bash
+myhostname = yourdomain.com
+myorigin = /etc/mailname
+relayhost = smtp.example.com:587
+```
+
+**Credentials**: `/etc/postfix/sasl_passwd`
+```
+smtp.example.com:587 user@example.com:password
+```
+
+**Hostname**: `/etc/mailname`
+```
+yourdomain.com
+```
+
+<Warning>
+The `sasl_passwd` file contains plaintext passwords and is only readable by root (0600 permissions).
+</Warning>
+
+## Main Hostname
+
+The main hostname/domain serves as:
+- The FROM domain for system emails
+- Server's mail identity
+- Default origin for outgoing mail
+
+Requirements:
+- Must be a valid domain configured on your server
+- Should match a site in `/etc/nginx/sites-available/`
+- Recommended: Configure SPF and DKIM records for this domain
+
+## Test Email Delivery
+
+Verify SMTP is working:
+
+```bash
+# Send test email
+echo "Test email from Webinoly" | mail -s "Test Subject" recipient@example.com
+
+# Check mail queue
+mailq
+
+# View mail log
+sudo log -mail
+```
+
+## Monitor Email Logs
+
+View email delivery logs:
+
+```bash
+# Real-time mail logs
+sudo log -mail
+
+# Or
+sudo log -email
+
+# Check for errors
+sudo tail -f /var/log/mail.err
+```
+
+Common log entries:
+- `status=sent` - Email sent successfully
+- `status=deferred` - Temporary failure, will retry
+- `status=bounced` - Permanent failure
+
+## WordPress Integration
+
+### Configure wp-mail-smtp Plugin
+
+For better WordPress email management:
+
+1. Install **WP Mail SMTP** plugin
+2. Configure with "Other SMTP" option:
+   - SMTP Host: `localhost`
+   - SMTP Port: `25`
+   - Encryption: None
+   - Authentication: Off
+
+WordPress will use Postfix relay configured by Webinoly.
+
+### Alternative: Direct SMTP in WordPress
+
+Configure WordPress to use external SMTP directly:
+
+1. Install WP Mail SMTP plugin
+2. Enter your SMTP provider credentials
+3. This bypasses Postfix (not recommended - use Webinoly SMTP instead)
+
+<Tip>
+Using Webinoly's SMTP relay centralizes email configuration and simplifies management across multiple WordPress sites.
+</Tip>
+
+## Troubleshooting
+
+### Emails Not Sending
+
+1. Check Postfix status:
+   ```bash
+   sudo systemctl status postfix
+   ```
+
+2. Test SMTP credentials:
+   ```bash
+   # Test authentication
+   sudo postfix check
+   sudo postfix reload
+   ```
+
+3. Verify SMTP host is reachable:
+   ```bash
+   telnet smtp.example.com 587
+   ```
+
+4. Check mail queue:
+   ```bash
+   mailq
+   ```
+
+5. View detailed logs:
+   ```bash
+   sudo tail -100 /var/log/mail.log
+   ```
+
+### Authentication Failures
+
+If you see `authentication failed` errors:
+
+1. Verify credentials are correct
+2. Check if app-specific password is needed (Gmail)
+3. Ensure SMTP user has sending permissions
+4. Regenerate SMTP password/API key
+
+### DNS/SPF Issues
+
+Emails marked as spam:
+
+1. Add SPF record to main hostname domain:
+   ```
+   v=spf1 include:_spf.google.com ~all
+   ```
+   (Adjust based on SMTP provider)
+
+2. Configure DKIM if supported by provider
+
+3. Set up DMARC policy:
+   ```
+   v=DMARC1; p=none; rua=mailto:dmarc@yourdomain.com
+   ```
+
+### Firewall Blocking Port 587
+
+If connection times out:
+
+```bash
+# Check if port 587 is blocked
+sudo ufw status
+
+# Allow outgoing SMTP
+sudo ufw allow out 587/tcp
+```
+
+### Queue Not Processing
+
+Flush stuck mail queue:
+
+```bash
+# Force queue processing
+sudo postqueue -f
+
+# Remove specific messages
+sudo postsuper -d MESSAGE_ID
+
+# Remove all queued messages
+sudo postsuper -d ALL
+```
+
+## Backup SMTP Configuration
+
+SMTP configuration is included in:
+
+**Full Server Backup**:
+```bash
+sudo webinoly -backup=export -server
+```
+
+This includes Postfix configuration files in `/var/www/webinoly_backup_smtp`
+
+**Manual Backup**:
+```bash
+sudo cp /etc/postfix/main.cf /root/main.cf.backup
+sudo cp /etc/postfix/sasl_passwd /root/sasl_passwd.backup
+sudo cp /etc/mailname /root/mailname.backup
+```
+
+## Disable SMTP
+
+Restore default Postfix configuration:
+
+```bash
+# Restore from template
+sudo cp /opt/webinoly/templates/source/main.cf /etc/postfix/main.cf
+
+# Remove credentials
+sudo rm /etc/postfix/sasl_passwd*
+
+# Restart Postfix
+sudo systemctl restart postfix
+```
+
+## Security Best Practices
+
+1. **Use App-Specific Passwords**: Don't use main account passwords
+2. **Rotate Credentials**: Change SMTP passwords regularly
+3. **Monitor Logs**: Watch for unauthorized sending attempts
+4. **Rate Limiting**: Most providers limit sending rates
+5. **SPF/DKIM/DMARC**: Configure email authentication
+6. **Restrict Access**: Keep `sasl_passwd` file secure (already 0600)
+
+## Advanced Configuration
+
+### Custom Postfix Settings
+
+Edit main configuration:
+
+```bash
+sudo nano /etc/postfix/main.cf
+```
+
+Common customizations:
+
+```bash
+# Set message size limit (50MB)
+message_size_limit = 52428800
+
+# Set mailbox size limit
+mailbox_size_limit = 0
+
+# Set sender address
+smtp_generic_maps = hash:/etc/postfix/generic
+```
+
+Reload after changes:
+```bash
+sudo systemctl reload postfix
+```
+
+### Multiple SMTP Relays
+
+For advanced setups with sender-dependent routing:
+
+```bash
+# Edit sender-dependent relay map
+sudo nano /etc/postfix/sender_relay
+```
+
+Add:
+```
+user1@domain1.com    [smtp.provider1.com]:587
+user2@domain2.com    [smtp.provider2.com]:587
+```
+
+Configure in main.cf:
+```bash
+sender_dependent_relayhost_maps = hash:/etc/postfix/sender_relay
+```
+
+Hash and reload:
+```bash
+sudo postmap /etc/postfix/sender_relay
+sudo systemctl reload postfix
+```
+
+<Warning>
+Advanced Postfix modifications may be overwritten by Webinoly stack resets. Keep backups of custom configurations.
+</Warning>

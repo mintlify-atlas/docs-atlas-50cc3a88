@@ -1,0 +1,399 @@
+---
+title: "Frequently Asked Questions"
+description: "Common questions and answers about Webinoly"
+---
+
+## General Questions
+
+<AccordionGroup>
+  <Accordion title="What is Webinoly?">
+    Webinoly is a powerful set of commands for managing an optimized NGINX web server. It provides one of the most reliable configurations for hosting websites, allowing you to deploy everything in a single step.
+
+    Key features include:
+    - Complete LEMP Stack (Ubuntu + NGINX + MariaDB/MySQL + PHP)
+    - FastCGI Cache, Redis Object Cache, and HTTP/3 support
+    - Free SSL via Let's Encrypt
+    - WordPress tools and optimization
+    - Reverse proxy capabilities
+    - Backup and migration tools
+  </Accordion>
+
+  <Accordion title="What are the system requirements?">
+    Webinoly requires:
+    - **Operating System**: Ubuntu 24.04 or 22.04
+    - **Architecture**: arm64 or x86_64 (amd64)
+    - **RAM**: Minimum 512 MB (1GB+ recommended for production)
+    - **Root Access**: Yes, sudo privileges required
+  </Accordion>
+
+  <Accordion title="Which PHP versions are supported?">
+    Webinoly supports the following PHP versions:
+    - PHP 7.4
+    - PHP 8.0
+    - PHP 8.1
+    - PHP 8.2
+    - PHP 8.3
+    - PHP 8.4 (default)
+    - PHP 8.5
+
+    You can specify a different version during installation using the `-php` flag.
+  </Accordion>
+
+  <Accordion title="Which database engines are supported?">
+    Webinoly supports both MariaDB and MySQL:
+
+    **MariaDB** (default):
+    - 10.11
+    - 11.4
+    - 11.8 (default)
+
+    **MySQL**:
+    - 8.0
+    - 8.4 (default)
+  </Accordion>
+
+  <Accordion title="Can I use Webinoly for production websites?">
+    Yes! Webinoly is designed for production use and provides enterprise-grade configurations. Sites using Webinoly can achieve an A+ grade on [Qualys SSL Labs Test](https://www.ssllabs.com/ssltest/).
+
+    It's optimized for:
+    - High performance with caching
+    - Security with SSL/TLS
+    - Scalability with reverse proxy support
+    - Reliability with automated backups
+  </Accordion>
+</AccordionGroup>
+
+## Installation & Setup
+
+<AccordionGroup>
+  <Accordion title="How do I install Webinoly?">
+    Installation is simple and can be done in one command:
+
+    ```bash
+    wget -qO weby qrok.es/wy && sudo bash weby
+    ```
+
+    This will:
+    1. Download the Webinoly installer
+    2. Install the complete LEMP stack
+    3. Configure NGINX with optimized settings
+    4. Set up SSL certificates
+    5. Install additional tools
+  </Accordion>
+
+  <Accordion title="Can I install individual components?">
+    Yes! You can install components separately:
+
+    ```bash
+    # Install only NGINX
+    sudo stack -nginx
+
+    # Install only PHP
+    sudo stack -php
+
+    # Install only MySQL/MariaDB
+    sudo stack -mysql
+
+    # Install Let's Encrypt
+    sudo stack -letsencrypt
+
+    # Install Redis
+    sudo stack -redis
+    ```
+  </Accordion>
+
+  <Accordion title="How do I update Webinoly?">
+    To update Webinoly to the latest version:
+
+    ```bash
+    sudo webinoly -update
+    ```
+
+    This will update Webinoly itself and notify you of any available component updates.
+  </Accordion>
+
+  <Accordion title="Can I uninstall Webinoly?">
+    Yes, you can uninstall Webinoly and all its components:
+
+    ```bash
+    # Remove everything
+    sudo webinoly -uninstall
+
+    # Remove specific components
+    sudo stack -nginx=off
+    sudo stack -php=off
+    sudo stack -mysql=off
+    ```
+
+    <Warning>
+      Uninstalling will remove all configurations and data. Make sure to backup your sites first!
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+## Site Management
+
+<AccordionGroup>
+  <Accordion title="How do I create a new site?">
+    Creating sites is straightforward:
+
+    ```bash
+    # HTML site
+    sudo site example.com
+
+    # PHP site
+    sudo site example.com -php
+
+    # WordPress site
+    sudo site example.com -wp
+
+    # WordPress with cache
+    sudo site example.com -wp -cache
+    ```
+  </Accordion>
+
+  <Accordion title="How do I enable SSL for my site?">
+    SSL is enabled automatically for new sites. For existing sites:
+
+    ```bash
+    sudo site example.com -ssl=on
+    ```
+
+    Webinoly uses Let's Encrypt for free SSL certificates and handles automatic renewal.
+  </Accordion>
+
+  <Accordion title="How do I delete a site?">
+    To delete a site:
+
+    ```bash
+    # Delete site but keep files
+    sudo site example.com -delete
+
+    # Delete site and all files
+    sudo site example.com -delete=force
+    ```
+  </Accordion>
+
+  <Accordion title="Can I host multiple PHP versions?">
+    Yes! Webinoly supports multiple PHP versions simultaneously:
+
+    ```bash
+    # Install additional PHP versions
+    sudo stack -php=8.3
+    sudo stack -php=8.2
+
+    # Create site with specific PHP version
+    sudo site example.com -php=8.3
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## WordPress Specific
+
+<AccordionGroup>
+  <Accordion title="Does Webinoly support WordPress Multisite?">
+    Yes! Webinoly fully supports WordPress Multisite networks:
+
+    ```bash
+    # Subdomain multisite
+    sudo site example.com -wp -multisite=subdomain
+
+    # Subdirectory multisite
+    sudo site example.com -wp -multisite=subdirectory
+    ```
+  </Accordion>
+
+  <Accordion title="How do I enable FastCGI cache for WordPress?">
+    FastCGI cache dramatically improves WordPress performance:
+
+    ```bash
+    # Enable during site creation
+    sudo site example.com -wp -cache
+
+    # Enable for existing site
+    sudo site example.com -cache=on
+    ```
+  </Accordion>
+
+  <Accordion title="Can I use an external database?">
+    Yes, Webinoly supports external databases:
+
+    ```bash
+    sudo site example.com -wp -external-db=[user,password,host:port]
+    ```
+  </Accordion>
+
+  <Accordion title="How do I install WordPress in a subfolder?">
+    Webinoly supports subfolder installations:
+
+    ```bash
+    sudo site example.com -wp=/blog
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Performance & Optimization
+
+<AccordionGroup>
+  <Accordion title="What caching options are available?">
+    Webinoly provides multiple caching layers:
+
+    1. **FastCGI Cache**: Server-level caching for WordPress and PHP
+    2. **Redis Object Cache**: Database query caching
+    3. **Browser Cache**: Static asset caching
+    4. **Proxy Cache**: For reverse proxy setups
+
+    All can be managed through simple commands.
+  </Accordion>
+
+  <Accordion title="Does Webinoly support HTTP/3?">
+    Yes! HTTP/3 with QUIC protocol is supported and can be enabled for better performance:
+
+    ```bash
+    sudo site example.com -http3=on
+    ```
+  </Accordion>
+
+  <Accordion title="How do I optimize my server settings?">
+    Webinoly comes pre-configured with optimized settings, but you can fine-tune:
+
+    ```bash
+    # Optimize for performance
+    sudo webinoly -optimize
+
+    # Configure worker processes
+    sudo webinoly -config-nginx
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Security
+
+<AccordionGroup>
+  <Accordion title="How do I add HTTP authentication?">
+    Protect your site with HTTP authentication:
+
+    ```bash
+    sudo httpauth -add example.com
+    ```
+
+    This adds basic authentication to your site.
+  </Accordion>
+
+  <Accordion title="Are there built-in security features?">
+    Yes, Webinoly includes:
+    - Automatic SSL/TLS with Let's Encrypt
+    - Security headers configuration
+    - Firewall rules
+    - DDoS protection settings
+    - Regular security updates
+  </Accordion>
+
+  <Accordion title="How do I backup my sites?">
+    Webinoly includes backup tools:
+
+    ```bash
+    # Backup a site
+    sudo backup example.com
+
+    # Backup to remote location
+    sudo backup example.com -remote
+
+    # Restore from backup
+    sudo restore example.com
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="How do I check logs?">
+    View site logs easily:
+
+    ```bash
+    # View access logs
+    sudo log example.com
+
+    # View error logs
+    sudo log example.com -error
+
+    # Follow logs in real-time
+    sudo log example.com -watch
+    ```
+  </Accordion>
+
+  <Accordion title="My site is not working after installation. What should I check?">
+    Common troubleshooting steps:
+
+    1. Check NGINX status: `sudo service nginx status`
+    2. Check PHP-FPM: `sudo service php*-fpm status`
+    3. Check site configuration: `sudo nginx -t`
+    4. Review error logs: `sudo log example.com -error`
+    5. Verify DNS settings point to your server
+  </Accordion>
+
+  <Accordion title="How do I reset Webinoly configuration?">
+    To reset to default settings:
+
+    ```bash
+    sudo webinoly -reset
+    ```
+
+    This resets Webinoly configuration without affecting your sites.
+  </Accordion>
+
+  <Accordion title="SSL certificate renewal failed. What should I do?">
+    If automatic renewal fails:
+
+    1. Check your domain DNS settings
+    2. Ensure port 80 and 443 are open
+    3. Manually renew: `sudo certbot renew`
+    4. Check certificate status: `sudo certbot certificates`
+  </Accordion>
+</AccordionGroup>
+
+## Support & Community
+
+<AccordionGroup>
+  <Accordion title="Where can I get help?">
+    Multiple support channels are available:
+
+    - [Official Documentation](https://webinoly.com/documentation/)
+    - [GitHub Discussions](https://github.com/QROkes/webinoly/discussions)
+    - [Premium Support](https://webinoly.com/premium/)
+    - [Community Forums](https://webinoly.com/community/)
+  </Accordion>
+
+  <Accordion title="How do I report a bug?">
+    To report bugs:
+
+    1. Check existing [GitHub Issues](https://github.com/QROkes/webinoly/issues)
+    2. Gather system information: `sudo webinoly -info`
+    3. Create a new issue with detailed information
+    4. Include relevant logs and error messages
+  </Accordion>
+
+  <Accordion title="Can I contribute to Webinoly?">
+    Yes! Contributions are welcome. See our [contributing guide](/resources/contributing) for details on how to get involved.
+  </Accordion>
+</AccordionGroup>
+
+## Still Have Questions?
+
+If you didn't find the answer you're looking for:
+
+<CardGroup cols={2}>
+  <Card title="Documentation" icon="book" href="https://webinoly.com/documentation/">
+    Browse the complete documentation
+  </Card>
+  <Card title="Community" icon="users" href="https://webinoly.com/community/">
+    Join our community discussions
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/QROkes/webinoly">
+    View the source code and issues
+  </Card>
+  <Card title="Premium Support" icon="headset" href="https://webinoly.com/premium/">
+    Get dedicated support
+  </Card>
+</CardGroup>

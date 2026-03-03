@@ -1,0 +1,622 @@
+---
+title: "log Command"
+description: "View and manage server logs including Nginx access/error logs, PHP, MySQL, WordPress debug, and system logs"
+---
+
+## Overview
+
+The `log` command provides real-time log viewing and log management for all server components. Monitor access logs, debug errors, and manage log retention.
+
+## Basic Usage
+
+```bash
+sudo log [domain] <option> <argument>
+```
+
+## Nginx Logs
+
+### Access Logs
+
+View Nginx access logs:
+
+```bash
+# Global access log (all sites)
+sudo log
+
+# Site-specific access log
+sudo log example.com
+```
+
+Example output:
+```
+192.168.1.100 - - [03/Mar/2026:10:15:30 +0000] "GET /index.php HTTP/1.1" 200 5432
+192.168.1.101 - - [03/Mar/2026:10:15:31 +0000] "POST /wp-admin/admin-ajax.php HTTP/1.1" 200 156
+```
+
+### Error Logs
+
+View Nginx error logs:
+
+```bash
+# Global error log
+sudo log -error
+
+# Site-specific error log
+sudo log example.com -error
+```
+
+<ParamField path="-error" type="boolean">
+  View error logs instead of access logs
+</ParamField>
+
+## WordPress Logs
+
+### Enable Debug Mode
+
+Enable WordPress debug logging:
+
+```bash
+# Enable debug mode
+sudo log example.com -wp=on
+
+# Enable with debug display off (recommended for production)
+sudo log example.com -wp=on -display=off
+
+# Enable for subfolder
+sudo log example.com -wp=on -subfolder=/blog
+```
+
+<ParamField path="-wp" type="string">
+  WordPress debug mode:
+  - `on` - Enable debug logging
+  - `off` - Disable debug logging
+  - `true` - View debug log (if enabled)
+</ParamField>
+
+<ParamField path="-display" type="string">
+  Control debug display:
+  - `off` - Log errors but don't display on screen (recommended)
+  - (omit) - Display errors on screen (default when enabling)
+</ParamField>
+
+What gets enabled:
+- `WP_DEBUG = true` - Enable debug mode
+- `WP_DEBUG_LOG = true` - Log to `/wp-content/debug.log`
+- `WP_DEBUG_DISPLAY` - Show errors on screen (if `-display` not set to `off`)
+
+### View WordPress Debug Log
+
+```bash
+# View debug log
+sudo log example.com -wp
+
+# View debug log for subfolder
+sudo log example.com -wp -subfolder=/blog
+```
+
+Log location: `/var/www/example.com/htdocs/wp-content/debug.log`
+
+<Note>
+  WordPress debug mode must be enabled first. If logging is off, viewing will show an error.
+</Note>
+
+### Disable Debug Mode
+
+```bash
+sudo log example.com -wp=off
+```
+
+### Set Environment with Debug
+
+Combine with environment setting:
+
+```bash
+# Enable debug and set environment
+sudo log example.com -wp=on -env=staging
+
+# Disable debug and set environment
+sudo log example.com -wp=off -env=production
+```
+
+## PHP Logs
+
+### PHP-FPM Logs
+
+View PHP-FPM error logs:
+
+```bash
+sudo log -php
+```
+
+Alternative:
+```bash
+sudo log -fpm
+```
+
+Shows PHP-FPM process errors, warnings, and notices.
+
+## MySQL/MariaDB Logs
+
+### Error Log
+
+View MySQL/MariaDB error log:
+
+```bash
+sudo log -mysql
+```
+
+Alternative:
+```bash
+sudo log -mysql=error
+```
+
+### General Log
+
+Enable and view general query log:
+
+```bash
+# Enable general log
+sudo log -mysql=general -enable
+
+# View general log
+sudo log -mysql=general
+
+# Disable general log
+sudo log -mysql=general -disable
+```
+
+<ParamField path="-enable" type="boolean">
+  Enable the specified MySQL log type
+</ParamField>
+
+<ParamField path="-disable" type="boolean">
+  Disable the specified MySQL log type
+</ParamField>
+
+<Warning>
+  General log records ALL queries and can grow very large. Only enable for debugging, then disable.
+</Warning>
+
+### Slow Query Log
+
+Enable and view slow query log:
+
+```bash
+# Enable slow query log
+sudo log -mysql=slow -enable
+
+# Enable with custom threshold
+sudo log -mysql=slow -enable -long-query-time=5
+
+# View slow query log
+sudo log -mysql=slow
+
+# Disable slow query log
+sudo log -mysql=slow -disable
+```
+
+<ParamField path="-long-query-time" type="number" default="10">
+  Queries taking longer than this (in seconds) are logged. Default is 10 seconds.
+</ParamField>
+
+### Binary Log
+
+Enable and view binary log (for replication):
+
+```bash
+# Enable binary log
+sudo log -mysql=binary -enable
+
+# Enable with custom expiration
+sudo log -mysql=binary -enable -expire-logs=604800
+
+# View binary log
+sudo log -mysql=binary
+
+# Disable binary log
+sudo log -mysql=binary -disable
+```
+
+<ParamField path="-expire-logs" type="number" default="2592000">
+  Binary log expiration time in seconds. Default is 2592000 (30 days).
+</ParamField>
+
+<Note>
+  Binary logs are required for MySQL replication and point-in-time recovery.
+</Note>
+
+## Mail Logs
+
+### Mail and SMTP Logs
+
+View mail server logs:
+
+```bash
+sudo log -mail
+```
+
+Alternative:
+```bash
+sudo log -email
+```
+
+Shows both:
+- `/var/log/mail.log` - Mail delivery log
+- `/var/log/mail.err` - Mail errors
+
+## System Logs
+
+### Let's Encrypt Logs
+
+View Let's Encrypt/Certbot logs:
+
+```bash
+sudo log -le
+```
+
+Useful for debugging SSL certificate issues.
+
+### SSH/Auth Logs
+
+View authentication and SSH logs:
+
+```bash
+sudo log -auth
+```
+
+Alternative:
+```bash
+sudo log -ssh
+```
+
+Shows login attempts, sudo usage, and authentication events.
+
+### Syslog
+
+View system log:
+
+```bash
+sudo log -syslog
+```
+
+Shows general system messages from all services.
+
+## Log Configuration
+
+### Access Log Control
+
+Enable or disable access logging:
+
+```bash
+# Disable access log globally
+sudo log -access-log=off
+
+# Enable access log globally
+sudo log -access-log=on
+
+# Disable for specific site
+sudo log example.com -access-log=off
+
+# Enable for specific site
+sudo log example.com -access-log=on
+```
+
+<ParamField path="-access-log" type="string">
+  Access log control:
+  - `on` - Enable access logging
+  - `off` - Disable access logging
+</ParamField>
+
+### Access Log Buffering
+
+Optimize access log performance with buffering:
+
+```bash
+# Enable with buffering (buffer=32k, flush=5m)
+sudo log -access-log=on -buffer=[32,5]
+
+# Enable for site with buffering
+sudo log example.com -access-log=on -buffer=[64,10]
+```
+
+<ParamField path="-buffer" type="string">
+  Log buffer configuration: `[buffer_size_kb,flush_time_minutes]`
+  
+  - First value: Buffer size in kilobytes
+  - Second value: Flush interval in minutes
+  
+  Example: `[32,5]` = 32KB buffer, flush every 5 minutes
+</ParamField>
+
+<Note>
+  Buffering improves performance by reducing disk writes, but logs may be delayed by up to the flush interval.
+</Note>
+
+## Log Viewing Options
+
+### Custom Line Count
+
+Control number of lines displayed:
+
+```bash
+# Show last 50 lines (default is 10)
+sudo log example.com -lines=50
+
+# Show last 100 lines of error log
+sudo log -error -lines=100
+
+# Show last 20 lines of PHP log
+sudo log -php -lines=20
+```
+
+<ParamField path="-lines" type="number" default="10">
+  Number of lines to display from the end of the log file
+</ParamField>
+
+You can also set a default line count:
+
+```bash
+# Set default to 20 lines
+sudo webinoly -dynvar=log-lines -value=20
+
+# Now all log commands show 20 lines by default
+sudo log example.com
+```
+
+## Log Management
+
+### Purge Old Logs
+
+Delete old compressed log files:
+
+```bash
+# Purge all .gz log files (prompts for confirmation)
+sudo log -purge
+
+# Purge without confirmation
+sudo log -purge=force
+
+# Purge Nginx logs only
+sudo log -purge=nginx
+
+# Purge MySQL logs only
+sudo log -purge=mysql
+
+# Purge Let's Encrypt logs only
+sudo log -purge=letsencrypt
+
+# Purge Redis logs only
+sudo log -purge=redis
+
+# Purge journal logs (keeps last 7 days)
+sudo log -purge=journal
+```
+
+<ParamField path="-purge" type="string">
+  Purge log files:
+  - `true` / `all` - Purge all .gz logs (prompts for confirmation)
+  - `force` - Purge all without confirmation
+  - `nginx` - Purge only Nginx .gz logs
+  - `mysql` - Purge only MySQL .gz logs
+  - `letsencrypt` - Purge only Let's Encrypt .gz logs
+  - `redis` - Purge only Redis .gz logs
+  - `journal` - Clean systemd journal (keeps 7 days)
+</ParamField>
+
+<Warning>
+  This only removes compressed (.gz) log files. Current log files are not affected.
+</Warning>
+
+## Real-Time Monitoring
+
+All log commands show real-time updates using `tail -f`:
+
+```bash
+# Monitor access log in real-time
+sudo log example.com
+
+# Monitor error log in real-time
+sudo log example.com -error
+
+# Monitor WordPress debug log
+sudo log example.com -wp
+
+# Press Ctrl+C to stop monitoring
+```
+
+## Examples
+
+### Debug WordPress Issues
+
+```bash
+# Enable WordPress debug
+sudo log example.com -wp=on -display=off
+
+# View debug log in real-time
+sudo log example.com -wp
+
+# Also check PHP errors
+sudo log -php
+
+# Check Nginx errors
+sudo log example.com -error
+```
+
+### Monitor High Traffic Site
+
+```bash
+# Monitor access in real-time
+sudo log example.com -lines=50
+
+# In another terminal, monitor errors
+sudo log example.com -error -lines=50
+
+# Check PHP-FPM status
+sudo log -php
+```
+
+### Debug Database Issues
+
+```bash
+# Check MySQL errors
+sudo log -mysql
+
+# Enable slow query log
+sudo log -mysql=slow -enable -long-query-time=2
+
+# Monitor slow queries
+sudo log -mysql=slow
+
+# Disable when done
+sudo log -mysql=slow -disable
+```
+
+### Debug SSL Issues
+
+```bash
+# Check Let's Encrypt logs
+sudo log -le
+
+# Check Nginx error log
+sudo log -error
+
+# Check system log
+sudo log -syslog
+```
+
+### Audit Security
+
+```bash
+# Check auth logs for login attempts
+sudo log -auth -lines=100
+
+# Check access logs for suspicious activity
+sudo log example.com -lines=100
+
+# Check system log
+sudo log -syslog
+```
+
+### Optimize Performance
+
+```bash
+# Disable access logging for high-traffic site
+sudo log example.com -access-log=off
+
+# Or use buffering
+sudo log example.com -access-log=on -buffer=[64,10]
+
+# Enable slow query log to find bottlenecks
+sudo log -mysql=slow -enable -long-query-time=1
+sudo log -mysql=slow
+```
+
+### Clean Up Disk Space
+
+```bash
+# Check current log sizes
+du -sh /var/log/nginx/*.gz
+du -sh /var/log/mysql/*.gz
+
+# Purge old compressed logs
+sudo log -purge=nginx
+sudo log -purge=mysql
+
+# Clean journal
+sudo log -purge=journal
+```
+
+## Log Locations Reference
+
+### Nginx
+- Global access: `/var/log/nginx/access.log`
+- Global error: `/var/log/nginx/error.log`
+- Site access: `/var/log/nginx/[domain].access.log`
+- Site error: `/var/log/nginx/[domain].error.log`
+
+### PHP
+- PHP-FPM: `/var/log/php/[version]/fpm.log`
+
+### MySQL/MariaDB
+- Error: `/var/log/mysql/error.log`
+- General: `/var/log/mysql/mysql.log`
+- Slow query: `/var/log/mysql/mariadb-slow.log`
+- Binary: `/var/log/mysql/mariadb-bin`
+
+### WordPress
+- Debug: `/var/www/[domain]/htdocs/wp-content/debug.log`
+
+### System
+- Mail: `/var/log/mail.log` and `/var/log/mail.err`
+- Let's Encrypt: `/var/log/letsencrypt/letsencrypt.log`
+- Auth/SSH: `/var/log/auth.log`
+- Syslog: `/var/log/syslog`
+
+## Troubleshooting
+
+### Log File Not Found
+
+```bash
+# Check if service is running
+sudo systemctl status nginx
+sudo systemctl status php8.3-fpm
+sudo systemctl status mysql
+
+# Check if access log is enabled
+sudo log example.com -access-log=on
+
+# For WordPress debug, enable it first
+sudo log example.com -wp=on
+```
+
+### Empty Log File
+
+If log exists but shows "Log File is Empty":
+
+```
+[Log File is Empty] Waiting to receive some data, you will see it in real-time here...
+```
+
+This is normal - the command waits for new log entries.
+
+### Permission Denied
+
+All log commands require sudo:
+
+```bash
+# Wrong
+log example.com
+
+# Correct
+sudo log example.com
+```
+
+### High Disk Usage
+
+```bash
+# Find large log files
+sudo du -sh /var/log/nginx/*
+sudo du -sh /var/log/mysql/*
+
+# Purge old compressed logs
+sudo log -purge=force
+
+# Disable access logging if needed
+sudo log example.com -access-log=off
+```
+
+## Notes
+
+- All commands require `sudo` (root privileges)
+- Logs are displayed in real-time using `tail -f`
+- Press `Ctrl+C` to stop viewing logs
+- Compressed (.gz) logs are created by logrotate
+- MySQL logs require restart when enabling/disabling
+- WordPress debug logs can grow large - monitor size
+- Use `-help` to see all available options
+
+## See Also
+
+- [Site Management](/cli/site) - Manage sites that generate logs
+- [Webinoly Command](/cli/webinoly) - Server configuration
+- [HTTP Auth](/cli/httpauth) - Monitor authentication attempts in logs

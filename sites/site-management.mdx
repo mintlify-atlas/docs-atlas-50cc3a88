@@ -1,0 +1,582 @@
+---
+title: Site Management
+description: Manage existing sites - enable/disable, delete, list, force redirects, domain forwarding, and site information
+---
+
+Webinoly provides comprehensive tools for managing existing sites, including enabling/disabling, deletion, listing, redirects, and detailed site information.
+
+## Enable and Disable Sites
+
+Temporarily disable or re-enable sites without deleting them.
+
+### Disable a Site
+
+Disable a site (keeps files, removes from active configuration):
+
+```bash
+sudo site example.com -off
+```
+
+This removes the site from `/etc/nginx/sites-enabled/` but keeps:
+- Configuration in `/etc/nginx/sites-available/`
+- All site files in `/var/www/`
+- Database (if WordPress)
+- SSL certificates
+
+### Enable a Site
+
+Re-enable a disabled site:
+
+```bash
+sudo site example.com -on
+```
+
+This creates a symlink in `/etc/nginx/sites-enabled/` to activate the site.
+
+<Warning>
+  NGINX is automatically reloaded after enabling/disabling sites (unless `-nginx-reload=off` is set).
+</Warning>
+
+## Deleting Sites
+
+Permanently remove sites from your server.
+
+### Delete a Single Site
+
+```bash
+sudo site example.com -delete
+```
+
+<Steps>
+  <Step title="Database Deletion Prompt">
+    For WordPress sites, you'll be asked:
+    ```
+    Delete Database [Y/n]?
+    ```
+    
+    - `Y` - Delete database and all data (default)
+    - `n` - Keep database intact
+  </Step>
+  
+  <Step title="SSL Certificate Prompt">
+    If SSL is enabled, you'll be asked:
+    ```
+    Revoke SSL Cert [Y/n]?
+    ```
+    
+    - `Y` - Revoke and delete certificate (default)
+    - `n` - Keep certificate for future use
+  </Step>
+  
+  <Step title="Site Removal">
+    Webinoly removes:
+    - NGINX configuration files
+    - Site files in `/var/www/`
+    - Database (if confirmed)
+    - SSL certificate (if confirmed)
+    - Cache files
+    - Upstream configurations (for reverse proxy)
+  </Step>
+</Steps>
+
+### Unattended Deletion
+
+Delete without prompts:
+
+<Tabs>
+  <Tab title="Force Delete">
+    Delete everything (database, SSL, files):
+    
+    ```bash
+    sudo site example.com -delete=force
+    ```
+  </Tab>
+  
+  <Tab title="Keep Database">
+    Delete site but keep database:
+    
+    ```bash
+    sudo site example.com -delete=keep-db
+    ```
+  </Tab>
+</Tabs>
+
+### Delete Subfolder Sites
+
+Delete a subfolder site:
+
+```bash
+sudo site example.com -delete -subfolder=/blog
+```
+
+This removes:
+- Subfolder configuration files
+- Files in `/var/www/example.com/htdocs/blog/`
+- Database (if WordPress subfolder)
+- Cache configuration for subfolder
+
+## Delete All Sites
+
+Remove all sites from your server:
+
+```bash
+sudo site -delete-all
+```
+
+You'll be prompted for confirmation:
+```
+All site files will be deleted.
+Only databases linked to WordPress sites will be removed, others will remain untouched.
+Are you sure [y/N]?
+```
+
+### Unattended Delete All
+
+<CodeGroup>
+```bash Delete All (Force)
+sudo site -delete-all=force
+```
+
+```bash Delete All (Keep Databases)
+sudo site -delete-all=keep-db
+```
+</CodeGroup>
+
+<Warning>
+  System sites are protected:
+  - `default` - Default NGINX site
+  - Tools site - Admin tools site
+  
+  These sites are never deleted, even with `-delete-all`.
+</Warning>
+
+## List All Sites
+
+View all sites on your server:
+
+```bash
+sudo site -list
+```
+
+Displays:
+- Site domain names
+- Site type (HTML, PHP, WordPress)
+- Status (enabled/disabled)
+- SSL status
+- WordPress version (if applicable)
+- Cache status
+
+## Force WWW/Non-WWW Redirect
+
+Force all traffic to use www or non-www version of your domain.
+
+### Force Non-WWW (Root Domain)
+
+Redirect www to non-www (default):
+
+```bash
+sudo site example.com -force-redirect=root
+```
+
+Result:
+- `www.example.com` → `example.com`
+- `http://www.example.com` → `https://example.com` (if SSL enabled)
+
+### Force WWW
+
+Redirect non-www to www:
+
+```bash
+sudo site example.com -force-redirect=www
+```
+
+Result:
+- `example.com` → `www.example.com`
+- `http://example.com` → `https://www.example.com` (if SSL enabled)
+
+### Disable Force Redirect
+
+Allow both www and non-www:
+
+```bash
+sudo site example.com -force-redirect=off
+```
+
+Both versions will work independently.
+
+### WordPress Integration
+
+Force redirect automatically updates WordPress database:
+
+- `-force-redirect=www` → Updates to `https://www.example.com`
+- `-force-redirect=root` → Updates to `https://example.com`
+
+Database `home` and `siteurl` options are automatically updated.
+
+<Warning>
+  - Force redirect only works on root domains, not subdomains
+  - Subdomains (`blog.example.com`) should not use force redirect
+  - SSL redirect takes precedence (HTTP → HTTPS happens first)
+</Warning>
+
+## Domain Forwarding
+
+Redirect an entire domain to another URL.
+
+### Create a Forwarding Domain
+
+```bash
+sudo site old-domain.com -forward=https://new-domain.com
+```
+
+All requests to `old-domain.com` redirect to `new-domain.com`.
+
+### Forward with Path Preservation
+
+By default, the original request path is preserved:
+
+```
+old-domain.com/page → new-domain.com/page
+old-domain.com/blog/post → new-domain.com/blog/post
+```
+
+### HTTP Codes
+
+Forwarding uses 301 (permanent) redirect by default. Customize with redirections feature.
+
+## Redirection Manager
+
+Create custom redirects for specific paths.
+
+### Create a Redirect
+
+```bash
+sudo site example.com -redirection -from=/old-page -to=/new-page
+```
+
+<CodeGroup>
+```bash Simple Redirect
+sudo site example.com -redirection -from=/old -to=/new
+```
+
+```bash External Redirect
+sudo site example.com -redirection -from=/docs -to=https://docs.example.com
+```
+
+```bash Exact Match Only
+sudo site example.com -redirection -from=/ -to=/home -exact
+```
+
+```bash Custom HTTP Code
+sudo site example.com -redirection -from=/temp -to=/new -http-code=302
+```
+</CodeGroup>
+
+### Redirect Types
+
+<Tabs>
+  <Tab title="Standard Redirect (301)">
+    Permanent redirect (default):
+    
+    ```bash
+    sudo site example.com -redirection -from=/old -to=/new
+    ```
+    
+    Uses HTTP 301 (moved permanently).
+  </Tab>
+  
+  <Tab title="Temporary Redirect (302)">
+    Temporary redirect:
+    
+    ```bash
+    sudo site example.com -redirection -from=/old -to=/new -http-code=302
+    ```
+  </Tab>
+  
+  <Tab title="Access Denied (403)">
+    Block access to a path:
+    
+    ```bash
+    sudo site example.com -redirection -from=/blocked -http-code=403
+    ```
+    
+    No `-to` parameter needed.
+  </Tab>
+  
+  <Tab title="Gone (410)">
+    Mark content as permanently gone:
+    
+    ```bash
+    sudo site example.com -redirection -from=/deleted -http-code=410
+    ```
+  </Tab>
+</Tabs>
+
+### Regex Redirects
+
+Use regular expressions for complex patterns:
+
+```bash
+sudo site example.com -redirection -from="^/blog/(.*)" -to="/news/$1" -regex=sensitive
+```
+
+Regex options:
+- `sensitive` - Case-sensitive regex (default)
+- `insensitive` - Case-insensitive regex
+- `longest` - Longest matching prefix
+
+### Exact Match Redirects
+
+Match exact path only (not prefixes):
+
+```bash
+sudo site example.com -redirection -from=/ -to=/home -exact
+```
+
+This redirects only `example.com/`, not `example.com/page`.
+
+### List Redirections
+
+View all redirects for a site:
+
+```bash
+sudo site example.com -redirection -list
+```
+
+### Delete a Redirect
+
+Remove a specific redirect:
+
+```bash
+sudo site example.com -redirection -from=/old-page -delete
+```
+
+### Delete All Redirects
+
+Remove all redirects from a site:
+
+```bash
+sudo site example.com -redirection -delete-all
+```
+
+Unattended:
+```bash
+sudo site example.com -redirection -delete-all=force
+```
+
+## Site Information
+
+Get detailed information about a site:
+
+```bash
+sudo site example.com -info
+```
+
+Displays:
+- Site type (HTML, PHP, WordPress, Proxy, etc.)
+- WordPress version (if applicable)
+- Database details (if WordPress)
+- SSL certificate status
+- Cache configuration
+- Force redirect settings
+- Multisite status
+- Environment type
+- File locations
+
+### Subfolder Site Information
+
+```bash
+sudo site example.com -info -subfolder=/blog
+```
+
+## Parked Domains
+
+Create alias domains that point to an existing site.
+
+### Create a Parked Domain
+
+```bash
+sudo site alias.com -parked=main-site.com
+```
+
+Requests to `alias.com` serve content from `main-site.com`.
+
+### Parked Domain Features
+
+- Uses same files as main site
+- Separate NGINX configuration
+- Can have independent SSL
+- Can have different cache settings
+- Useful for multiple domains serving same content
+
+<Warning>
+  - Parked domains cannot be converted to multisite
+  - Deleting a parked domain doesn't affect main site files
+  - Parked domains show a warning during deletion
+</Warning>
+
+## Default and Tools Sites
+
+Webinoly maintains special system sites:
+
+### Default Site
+
+The default site handles requests that don't match any configured domain:
+
+```bash
+# Set a site as default
+sudo webinoly -default-site=example.com
+
+# Use blackhole default (recommended)
+sudo webinoly -default-site=blackhole
+```
+
+### Tools Site
+
+The tools site hosts admin tools (phpMyAdmin, etc.):
+
+```bash
+# Set tools site
+sudo webinoly -tools-site=example.com
+
+# Reset to default
+sudo webinoly -tools-site=default
+```
+
+<Warning>
+  System sites (default and tools) cannot be deleted unless explicitly forced or reassigned.
+</Warning>
+
+## NGINX Reload Control
+
+By default, NGINX reloads after site operations. Disable for bulk operations:
+
+```bash
+# Disable automatic reload
+sudo webinoly -nginx-reload=off
+
+# Perform multiple operations
+sudo site site1.com -delete=force
+sudo site site2.com -delete=force
+sudo site site3.com -delete=force
+
+# Manually reload once
+sudo systemctl reload nginx
+
+# Re-enable automatic reload
+sudo webinoly -nginx-reload=on
+```
+
+## File Permissions
+
+Webinoly automatically manages file permissions:
+
+- Site files: `www-data:www-data`
+- NGINX configs: `root:root`
+- Log files: `www-data:adm`
+
+Permissions are reset after site operations.
+
+## Logs
+
+Access site logs:
+
+```bash
+# Access log
+sudo tail -f /var/log/nginx/example.com.access.log
+
+# Error log
+sudo tail -f /var/log/nginx/example.com.error.log
+```
+
+Manage logs with the `log` command (see Log Management documentation).
+
+## Backup Before Major Changes
+
+Before deleting or making major changes:
+
+```bash
+# Backup site files
+sudo tar -czf ~/example.com-backup.tar.gz /var/www/example.com
+
+# Backup database (WordPress)
+sudo mysqldump -u root database_name > ~/database-backup.sql
+
+# Backup NGINX config
+sudo cp /etc/nginx/sites-available/example.com ~/example.com-nginx.conf
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Site Cleanup" icon="broom">
+    - Regularly review and remove unused sites
+    - Delete test sites after use
+    - Keep only necessary redirections
+    - Monitor disk usage
+  </Card>
+  
+  <Card title="Backups" icon="floppy-disk">
+    - Always backup before deletion
+    - Test backups periodically
+    - Store backups off-server
+    - Document backup procedures
+  </Card>
+  
+  <Card title="Monitoring" icon="chart-line">
+    - Check logs regularly
+    - Monitor site status
+    - Track SSL expiration
+    - Review redirections periodically
+  </Card>
+  
+  <Card title="Organization" icon="folder-tree">
+    - Use clear naming conventions
+    - Document site purposes
+    - Maintain site inventory
+    - Use staging sites for testing
+  </Card>
+</CardGroup>
+
+## Common Workflows
+
+### Migrate Site to New Domain
+
+```bash
+# Clone site to new domain
+sudo site new-domain.com -clone-from=old-domain.com
+
+# Enable SSL on new site
+sudo site new-domain.com -ssl=on
+
+# Set up forwarding from old domain
+sudo site old-domain.com -forward=https://new-domain.com
+```
+
+### Temporary Maintenance
+
+```bash
+# Disable site temporarily
+sudo site example.com -off
+
+# Perform maintenance
+# ...
+
+# Re-enable site
+sudo site example.com -on
+```
+
+### Clean Up Old Sites
+
+```bash
+# List all sites
+sudo site -list
+
+# Delete unused sites
+sudo site old-site1.com -delete=force
+sudo site old-site2.com -delete=force
+
+# Review and clean redirections
+sudo site active-site.com -redirection -list
+sudo site active-site.com -redirection -delete-all
+```

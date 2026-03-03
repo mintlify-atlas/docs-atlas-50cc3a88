@@ -1,0 +1,832 @@
+---
+title: Additional Tools
+description: Install and configure Redis, Memcached, Postfix, Let's Encrypt, phpMyAdmin, and backup tools with Webinoly
+---
+
+Webinoly provides several additional tools to enhance your server's capabilities, including caching systems, mail delivery, SSL certificates, and backup solutions.
+
+## Available Additional Tools
+
+<CardGroup cols={3}>
+  <Card title="Redis" icon="bolt">
+    Object caching for PHP
+  </Card>
+  <Card title="Memcached" icon="memory">
+    Distributed caching system
+  </Card>
+  <Card title="Postfix" icon="envelope">
+    SMTP mail server
+  </Card>
+  <Card title="Let's Encrypt" icon="lock">
+    Free SSL certificates
+  </Card>
+  <Card title="phpMyAdmin" icon="database">
+    Web database management
+  </Card>
+  <Card title="Backup Tools" icon="cloud-arrow-up">
+    Duplicity & Duply
+  </Card>
+</CardGroup>
+
+## Redis
+
+Redis is an in-memory data structure store used as a database, cache, and message broker.
+
+### Installation
+
+```bash
+sudo stack -redis
+```
+
+<Info>
+Redis requires PHP to be installed. If PHP is not present, you'll be prompted to install it.
+</Info>
+
+### What Gets Installed
+
+- **redis-server** - Redis server daemon
+- **php-redis** - PHP extension for Redis
+
+### Configuration
+
+Redis is automatically configured with optimal settings:
+
+<Steps>
+  <Step title="Memory Allocation">
+    Webinoly automatically calculates maxmemory based on available RAM:
+    ```bash
+    # Configuration file
+    /etc/redis/redis.conf
+    
+    # Memory is set to a percentage of total RAM
+    maxmemory XXXmb
+    ```
+  </Step>
+  
+  <Step title="Eviction Policy">
+    Configured with LFU (Least Frequently Used) policy:
+    ```conf
+    maxmemory-policy allkeys-lfu
+    ```
+  </Step>
+  
+  <Step title="Service Configuration">
+    Redis runs as a systemd service:
+    ```bash
+    sudo systemctl status redis-server
+    ```
+  </Step>
+</Steps>
+
+### Managing Redis
+
+<CodeGroup>
+```bash Start Redis
+sudo systemctl start redis-server
+```
+
+```bash Stop Redis
+sudo systemctl stop redis-server
+```
+
+```bash Restart Redis
+sudo systemctl restart redis-server
+```
+
+```bash Check Status
+sudo systemctl status redis-server
+```
+</CodeGroup>
+
+### Using Redis
+
+<Tabs>
+  <Tab title="CLI Access">
+    ```bash
+    # Connect to Redis CLI
+    redis-cli
+    
+    # Test connection
+    redis-cli ping
+    # Response: PONG
+    
+    # Check memory usage
+    redis-cli INFO memory
+    
+    # Clear all data
+    redis-cli FLUSHALL
+    ```
+  </Tab>
+  
+  <Tab title="PHP Integration">
+    ```php
+    <?php
+    // Connect to Redis
+    $redis = new Redis();
+    $redis->connect('127.0.0.1', 6379);
+    
+    // Set a value
+    $redis->set('key', 'value');
+    
+    // Get a value
+    echo $redis->get('key');
+    
+    // Set with expiration (seconds)
+    $redis->setex('key', 3600, 'value');
+    ?>
+    ```
+  </Tab>
+  
+  <Tab title="WordPress">
+    ```bash
+    # WordPress object cache
+    # Automatically configured when creating WP sites
+    # with Redis enabled
+    ```
+  </Tab>
+</Tabs>
+
+### Redis Optimization
+
+```bash
+# Adjust Redis memory allocation
+sudo webinoly -config-set=redis-max-mem:20
+sudo stack -php -optim
+```
+
+<Info>
+The value represents percentage of total RAM. Default is calculated automatically.
+</Info>
+
+### Removing Redis
+
+```bash
+sudo stack -redis -purge
+```
+
+## Memcached
+
+Memcached is a high-performance, distributed memory object caching system.
+
+### Installation
+
+```bash
+sudo stack -memcached
+```
+
+### What Gets Installed
+
+- **memcached** - Memcached server daemon
+- **php-memcached** - PHP extension for Memcached
+- **php-memcache** - Legacy PHP extension (PHP 5.6-8.4)
+
+<Info>
+Starting with PHP 8.5, the legacy `php-memcache` module is no longer available.
+</Info>
+
+### Configuration
+
+Memcached runs with default settings:
+
+```bash
+# Configuration file
+/etc/memcached.conf
+
+# Default settings:
+# Memory: 64MB
+# Port: 11211
+# Listen: 127.0.0.1
+```
+
+### Managing Memcached
+
+<CodeGroup>
+```bash Start Memcached
+sudo systemctl start memcached
+```
+
+```bash Stop Memcached
+sudo systemctl stop memcached
+```
+
+```bash Restart Memcached
+sudo systemctl restart memcached
+```
+
+```bash Check Status
+sudo systemctl status memcached
+```
+</CodeGroup>
+
+### Using Memcached
+
+<Tabs>
+  <Tab title="CLI Access">
+    ```bash
+    # Connect to Memcached
+    telnet localhost 11211
+    
+    # Check statistics
+    echo "stats" | nc localhost 11211
+    
+    # Flush all data
+    echo "flush_all" | nc localhost 11211
+    ```
+  </Tab>
+  
+  <Tab title="PHP Integration">
+    ```php
+    <?php
+    // Connect to Memcached
+    $memcached = new Memcached();
+    $memcached->addServer('127.0.0.1', 11211);
+    
+    // Set a value
+    $memcached->set('key', 'value', 3600);
+    
+    // Get a value
+    echo $memcached->get('key');
+    
+    // Delete a value
+    $memcached->delete('key');
+    ?>
+    ```
+  </Tab>
+</Tabs>
+
+### Removing Memcached
+
+```bash
+sudo stack -memcached -purge
+```
+
+## Postfix
+
+Postfix is a mail transfer agent (MTA) for sending email from PHP applications.
+
+### Installation
+
+```bash
+sudo stack -postfix
+```
+
+<Info>
+Postfix requires PHP to be installed first.
+</Info>
+
+### Automatic Configuration
+
+Webinoly configures Postfix during installation:
+
+<Steps>
+  <Step title="Mail Type Selection">
+    Configured as "Internet Site" for direct mail delivery
+  </Step>
+  
+  <Step title="Hostname Setup">
+    System hostname is automatically configured as mail name
+  </Step>
+  
+  <Step title="Security Configuration">
+    ```conf
+    # Only accept local mail
+    mydestination = localhost
+    
+    # Hide server information
+    smtpd_banner = $myhostname ESMTP
+    ```
+  </Step>
+</Steps>
+
+### Configuration Files
+
+```bash
+/etc/postfix/main.cf          # Main configuration
+/var/log/mail.log             # Mail logs
+```
+
+### Managing Postfix
+
+<CodeGroup>
+```bash Start Postfix
+sudo systemctl start postfix
+```
+
+```bash Stop Postfix
+sudo systemctl stop postfix
+```
+
+```bash Restart Postfix
+sudo systemctl restart postfix
+```
+
+```bash Reload Configuration
+sudo systemctl reload postfix
+```
+
+```bash Check Status
+sudo systemctl status postfix
+```
+</CodeGroup>
+
+### Testing Email
+
+```bash
+# Send test email
+echo "Test email body" | mail -s "Test Subject" user@example.com
+
+# Check mail queue
+mailq
+
+# View mail log
+sudo tail -f /var/log/mail.log
+```
+
+### PHP Mail Configuration
+
+Postfix is automatically configured for PHP:
+
+```php
+<?php
+// PHP mail() function works automatically
+mail('to@example.com', 'Subject', 'Message');
+?>
+```
+
+### Removing Postfix
+
+```bash
+sudo stack -postfix -purge
+```
+
+## Let's Encrypt (Certbot)
+
+Let's Encrypt provides free SSL/TLS certificates for websites.
+
+### Installation
+
+```bash
+sudo stack -letsencrypt
+```
+
+<Info>
+Let's Encrypt requires NGINX to be installed.
+</Info>
+
+### What Gets Installed
+
+- **certbot** - Certificate management tool (via Snap)
+- Automatic certificate renewal cron job
+
+### Installation Process
+
+<Steps>
+  <Step title="Snap Installation">
+    Certbot is installed via Snap for latest version:
+    ```bash
+    sudo snap install --classic certbot
+    ```
+  </Step>
+  
+  <Step title="Symlink Creation">
+    Creates system-wide access:
+    ```bash
+    /usr/bin/certbot -> /snap/bin/certbot
+    ```
+  </Step>
+  
+  <Step title="Renewal Setup">
+    Configures automatic renewal check (twice daily)
+  </Step>
+</Steps>
+
+<Info>
+Webinoly includes retry logic with up to 3 attempts if Snap repository fails during installation.
+</Info>
+
+### Using Let's Encrypt
+
+```bash
+# SSL is managed through site command
+# See SSL documentation for details
+sudo site example.com -ssl=on
+```
+
+### Certificate Management
+
+<CodeGroup>
+```bash List Certificates
+sudo certbot certificates
+```
+
+```bash Renew Manually
+sudo certbot renew
+```
+
+```bash Test Renewal
+sudo certbot renew --dry-run
+```
+</CodeGroup>
+
+### Removing Let's Encrypt
+
+```bash
+sudo stack -letsencrypt -purge
+```
+
+<Warning>
+Removing Let's Encrypt will not delete existing certificates, but renewal will stop.
+</Warning>
+
+## phpMyAdmin
+
+Web-based interface for MySQL/MariaDB management.
+
+### Installation
+
+```bash
+sudo stack -pma
+```
+
+<Info>
+phpMyAdmin requires NGINX, PHP, and MySQL/MariaDB to be installed.
+</Info>
+
+### Installation Process
+
+<Steps>
+  <Step title="Download Latest Version">
+    Downloads latest phpMyAdmin from official source
+  </Step>
+  
+  <Step title="Installation Location">
+    Installed in admin tools site:
+    ```bash
+    /var/www/$(tools-site)/htdocs/pma/
+    ```
+  </Step>
+  
+  <Step title="Configuration">
+    Automatic configuration:
+    - Blowfish secret generated
+    - Permissions secured (640 for files, 750 for directories)
+    - Owned by www-data
+  </Step>
+  
+  <Step title="Security Setup">
+    - Test and setup directories removed
+    - HTTP authentication required
+    - Access restricted to admin tools port
+  </Step>
+</Steps>
+
+### Accessing phpMyAdmin
+
+```bash
+# Default URL (port 22222)
+http://your-server-ip:22222/pma
+
+# Login with database credentials
+# Use 'admin' user or any database user
+```
+
+<Info>
+phpMyAdmin is protected by HTTP authentication. Use credentials from:
+```bash
+sudo webinoly -auth-list
+```
+</Info>
+
+### phpMyAdmin Features
+
+- Database creation and management
+- Table structure modification
+- SQL query execution
+- Data import/export
+- User and privilege management
+- Server status monitoring
+
+### Updating phpMyAdmin
+
+Reinstall to update to latest version:
+
+```bash
+sudo stack -pma -purge
+sudo stack -pma
+```
+
+### Removing phpMyAdmin
+
+```bash
+sudo stack -pma -purge
+```
+
+## Backup Tools (Duplicity & Duply)
+
+Comprehensive backup solution with support for various storage backends.
+
+### Installation
+
+```bash
+sudo stack -backups
+```
+
+<Info>
+Backup tools can be installed independently without NGINX, making them suitable for any server configuration.
+</Info>
+
+### What Gets Installed
+
+- **Duplicity** (v2.1.4) - Encrypted bandwidth-efficient backup
+- **Duply** - Frontend for Duplicity
+- **python3-boto3** - AWS S3 support
+- Required Python dependencies
+
+### Installation Methods
+
+<Tabs>
+  <Tab title="Ubuntu 22.04 / 20.04">
+    Installed via pip3:
+    ```bash
+    sudo pip3 install "duplicity==2.1.4"
+    ```
+  </Tab>
+  
+  <Tab title="Ubuntu 24.04+">
+    Installed in Python virtual environment:
+    ```bash
+    /opt/duplicity/
+    ```
+    
+    With symlink:
+    ```bash
+    /usr/bin/duplicity -> /opt/duplicity/bin/duplicity
+    ```
+  </Tab>
+</Tabs>
+
+### Supported Storage Backends
+
+<CardGroup cols={2}>
+  <Card title="Amazon S3" icon="aws">
+    Full S3 support via boto3
+  </Card>
+  <Card title="Local/Remote" icon="folder">
+    File system and SSH/SCP
+  </Card>
+  <Card title="Cloud Storage" icon="cloud">
+    Google Drive, Dropbox, etc.
+  </Card>
+  <Card title="FTP/SFTP" icon="server">
+    Traditional file transfer
+  </Card>
+</CardGroup>
+
+### Using Backup Tools
+
+```bash
+# Backups are managed through webinoly backup command
+# See backup documentation for details
+sudo backup example.com
+```
+
+### Duply Profiles
+
+Backup profiles are stored in:
+
+```bash
+~/.duply/
+```
+
+### Dependencies
+
+Automatic installation of required packages:
+
+- debhelper, dh-python, python3
+- gnupg, librsync-dev, par2
+- python3-pytest, python3-pexpect
+- python3-fasteners, python3-setuptools
+- rdiff, rename, rsync
+
+### Removing Backup Tools
+
+```bash
+sudo stack -backups -purge
+```
+
+<Warning>
+Removing backup tools will delete all Duply profiles and backup configurations.
+</Warning>
+
+## Build Profiles and Tools
+
+Different build profiles include different tools:
+
+<Tabs>
+  <Tab title="Full Build (Default)">
+    ```bash
+    sudo stack -lemp
+    ```
+    
+    Includes:
+    - NGINX + PHP + MySQL/MariaDB
+    - Let's Encrypt
+    - Backup Tools
+    - Redis
+    - Memcached
+    - Postfix
+  </Tab>
+  
+  <Tab title="Basic Build">
+    ```bash
+    sudo stack -lemp -build=basic
+    ```
+    
+    Includes:
+    - NGINX + PHP + MySQL/MariaDB
+    - Let's Encrypt
+    - Backup Tools
+  </Tab>
+  
+  <Tab title="Light Build">
+    ```bash
+    sudo stack -lemp -build=light
+    ```
+    
+    Includes:
+    - NGINX + PHP + MySQL/MariaDB only
+  </Tab>
+</Tabs>
+
+## Tool Dependencies
+
+<Steps>
+  <Step title="NGINX-Dependent Tools">
+    - Let's Encrypt (certbot)
+    - phpMyAdmin
+  </Step>
+  
+  <Step title="PHP-Dependent Tools">
+    - Redis (requires PHP extension)
+    - Memcached (requires PHP extension)
+    - Postfix (for PHP mail support)
+    - phpMyAdmin
+  </Step>
+  
+  <Step title="MySQL-Dependent Tools">
+    - phpMyAdmin
+  </Step>
+  
+  <Step title="Independent Tools">
+    - Backup Tools (can be installed alone)
+  </Step>
+</Steps>
+
+## Checking Installed Tools
+
+### Stack Information
+
+```bash
+sudo stack -info
+```
+
+Displays:
+- Installed components and versions
+- Active services status
+- Configuration details
+- Available tools
+
+### Individual Tool Status
+
+<CodeGroup>
+```bash Redis
+sudo systemctl status redis-server
+redis-cli ping
+```
+
+```bash Memcached
+sudo systemctl status memcached
+echo "stats" | nc localhost 11211
+```
+
+```bash Postfix
+sudo systemctl status postfix
+mailq
+```
+
+```bash Certbot
+sudo certbot certificates
+```
+
+```bash Duplicity
+duplicity --version
+```
+</CodeGroup>
+
+## Uninstalling All Tools
+
+### Complete Stack Removal
+
+```bash
+sudo stack -purge-server-all
+```
+
+<Warning>
+**CAUTION**: This removes:
+- NGINX, PHP, MySQL/MariaDB
+- All additional tools
+- All sites and configurations
+- All databases (unless specified otherwise)
+
+This action cannot be undone. Always backup your data first.
+</Warning>
+
+### Force Removal
+
+Unattended removal without prompts:
+
+```bash
+sudo stack -purge-server-all -force
+```
+
+## Troubleshooting Tools
+
+<AccordionGroup>
+  <Accordion title="Redis connection refused">
+    Check if Redis is running:
+    ```bash
+    sudo systemctl status redis-server
+    sudo systemctl restart redis-server
+    redis-cli ping
+    ```
+  </Accordion>
+  
+  <Accordion title="Memcached not responding">
+    Verify Memcached is listening:
+    ```bash
+    sudo systemctl status memcached
+    sudo netstat -tlnp | grep 11211
+    ```
+  </Accordion>
+  
+  <Accordion title="Postfix not sending mail">
+    Check mail log and queue:
+    ```bash
+    sudo tail -f /var/log/mail.log
+    mailq
+    sudo postqueue -f
+    ```
+  </Accordion>
+  
+  <Accordion title="phpMyAdmin not accessible">
+    Verify all requirements:
+    ```bash
+    sudo systemctl status nginx
+    sudo systemctl status php8.4-fpm
+    sudo systemctl status mysql
+    ls -la /var/www/$(conf_read tools-site)/htdocs/pma/
+    ```
+  </Accordion>
+  
+  <Accordion title="Certbot snap installation fails">
+    Webinoly automatically retries up to 3 times. If still failing:
+    ```bash
+    sudo snap refresh core
+    sudo snap install --classic certbot
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Redis for WordPress" icon="wordpress">
+    Significantly improves WordPress performance with object caching
+  </Card>
+  <Card title="Enable Backups" icon="shield-check">
+    Install backup tools and schedule regular automated backups
+  </Card>
+  <Card title="SSL for All Sites" icon="lock">
+    Install Let's Encrypt and enable SSL on all public-facing sites
+  </Card>
+  <Card title="Monitor Tool Usage" icon="chart-line">
+    Regularly check Redis/Memcached stats to optimize memory allocation
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Create Your First Site" icon="globe" href="/sites/creating-sites">
+    Start building websites with your configured stack
+  </Card>
+  <Card title="Configure SSL" icon="lock" href="/ssl/lets-encrypt">
+    Secure your sites with free SSL certificates
+  </Card>
+  <Card title="Setup Backups" icon="clock-rotate-left" href="/backups/automated-backups">
+    Configure automated backup schedules
+  </Card>
+  <Card title="Optimize Performance" icon="gauge-high" href="/optimization/caching">
+    Fine-tune caching and performance settings
+  </Card>
+</CardGroup>

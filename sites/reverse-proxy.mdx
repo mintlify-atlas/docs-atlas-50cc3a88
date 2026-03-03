@@ -1,0 +1,473 @@
+---
+title: Reverse Proxy Configuration
+description: Configure NGINX reverse proxy for Node.js, Python, Docker containers, and other backend applications
+---
+
+Webinoly allows you to configure NGINX as a reverse proxy to forward requests to backend applications running on different ports or servers. This is ideal for Node.js apps, Python applications, Docker containers, and other web services.
+
+## Creating a Reverse Proxy Site
+
+Create a reverse proxy that forwards requests to a backend application:
+
+```bash
+sudo site example.com -proxy=[URL:PORT]
+```
+
+<CodeGroup>
+```bash Local Application
+sudo site example.com -proxy=127.0.0.1:3000
+```
+
+```bash With HTTP Scheme
+sudo site example.com -proxy=http://127.0.0.1:8080
+```
+
+```bash Remote Server
+sudo site example.com -proxy=http://192.168.1.100:3000
+```
+
+```bash External Service
+sudo site example.com -proxy=https://backend.example.com:443
+```
+</CodeGroup>
+
+## How Reverse Proxy Works
+
+<Steps>
+  <Step title="Request Arrives">
+    Client makes a request to `example.com`
+  </Step>
+  
+  <Step title="NGINX Receives">
+    NGINX receives the request on port 80 (or 443 if SSL enabled)
+  </Step>
+  
+  <Step title="Proxy Pass">
+    NGINX forwards the request to your backend application (e.g., `127.0.0.1:3000`)
+  </Step>
+  
+  <Step title="Backend Responds">
+    Your application processes the request and sends response back to NGINX
+  </Step>
+  
+  <Step title="Client Receives">
+    NGINX forwards the response to the client
+  </Step>
+</Steps>
+
+## Upstream Configuration
+
+When you create a reverse proxy, Webinoly automatically creates an upstream configuration in `/etc/nginx/conf.d/upstream_proxy.conf`:
+
+```nginx
+upstream example_com {
+    server 127.0.0.1:3000;
+    keepalive 8;
+}
+```
+
+The upstream name is generated from your domain (e.g., `example.com` → `example_com`).
+
+## Proxy Configuration Details
+
+Webinoly's reverse proxy includes optimized settings:
+
+### Connection Settings
+
+```nginx
+proxy_http_version 1.1;
+proxy_set_header Connection "";
+proxy_set_header Proxy "";
+
+proxy_connect_timeout 300;
+proxy_send_timeout    300;
+proxy_read_timeout    300;
+```
+
+### Header Configuration
+
+Common proxy headers are commented by default. Uncomment in your site configuration as needed:
+
+```nginx
+# Preserve original host
+#proxy_set_header Host $host;
+#proxy_set_header X-Forwarded-Host $host;
+#proxy_set_header X-Forwarded-Server $host;
+#proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#proxy_set_header X-Forwarded-Proto $scheme;
+#proxy_set_header X-Real-IP $remote_addr;
+```
+
+Edit `/etc/nginx/sites-available/example.com` to customize headers for your application.
+
+### WebSocket Support
+
+For WebSocket connections, uncomment:
+
+```nginx
+#proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection "upgrade";
+```
+
+<Warning>
+  When using WebSocket upgrades, you should disable keepalive in the upstream configuration and set `Connection` to `"upgrade"` instead of `""`.
+</Warning>
+
+## Static File Caching
+
+Reverse proxy sites automatically cache static assets:
+
+```nginx
+location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)$ {
+    include common/headers-http.conf;
+    add_header "Access-Control-Allow-Origin" "*";
+    access_log off;
+    expires max;
+    proxy_pass http://example_com;
+}
+```
+
+Static files are cached with:
+- Maximum expiration time
+- CORS headers enabled
+- Access logging disabled
+- Optimized delivery
+
+## Dedicated Reverse Proxy
+
+For more control over caching, use dedicated reverse proxy mode:
+
+```bash
+sudo site example.com -proxy=127.0.0.1:3000 -dedicated-reverse-proxy
+```
+
+This enables:
+- Separate proxy cache zone
+- Custom cache control
+- Fine-grained cache purging
+- Better performance for dynamic backends
+
+## Reverse Proxy with Root Path
+
+For applications that need a specific document root for SSL verification:
+
+```bash
+sudo site example.com -proxy=127.0.0.1:3000 -root-path=/opt/myapp
+```
+
+Useful for:
+- Let's Encrypt SSL verification
+- Serving static files from the filesystem
+- Mixed proxy and static file serving
+
+## Common Use Cases
+
+<Tabs>
+  <Tab title="Node.js Application">
+    Running a Node.js app on port 3000:
+    
+    ```bash
+    # Create proxy site
+    sudo site example.com -proxy=127.0.0.1:3000
+    
+    # Enable SSL
+    sudo site example.com -ssl=on
+    ```
+    
+    Your Node.js app listens on `127.0.0.1:3000`, while NGINX handles:
+    - SSL termination
+    - Static file caching
+    - Request buffering
+    - Connection pooling
+  </Tab>
+  
+  <Tab title="Docker Container">
+    Proxy to a Docker container:
+    
+    ```bash
+    # Start Docker container on port 8080
+    docker run -d -p 8080:80 myapp
+    
+    # Create proxy site
+    sudo site example.com -proxy=127.0.0.1:8080
+    ```
+  </Tab>
+  
+  <Tab title="Python Flask/Django">
+    Proxy to a Python web application:
+    
+    ```bash
+    # Flask running on port 5000
+    sudo site example.com -proxy=127.0.0.1:5000
+    
+    # Gunicorn on port 8000
+    sudo site example.com -proxy=127.0.0.1:8000
+    ```
+  </Tab>
+  
+  <Tab title="Multiple Backend Servers">
+    Load balance across multiple backends:
+    
+    Edit `/etc/nginx/conf.d/upstream_proxy.conf`:
+    
+    ```nginx
+    upstream example_com {
+        server 127.0.0.1:3000;
+        server 127.0.0.1:3001;
+        server 127.0.0.1:3002;
+        keepalive 8;
+    }
+    ```
+    
+    NGINX will automatically load balance using round-robin.
+  </Tab>
+</Tabs>
+
+## Load Balancing Strategies
+
+Edit your upstream configuration for different load balancing methods:
+
+<CodeGroup>
+```nginx Round Robin (Default)
+upstream example_com {
+    server 127.0.0.1:3000;
+    server 127.0.0.1:3001;
+    server 127.0.0.1:3002;
+    keepalive 8;
+}
+```
+
+```nginx Least Connections
+upstream example_com {
+    least_conn;
+    server 127.0.0.1:3000;
+    server 127.0.0.1:3001;
+    keepalive 8;
+}
+```
+
+```nginx IP Hash (Sticky Sessions)
+upstream example_com {
+    ip_hash;
+    server 127.0.0.1:3000;
+    server 127.0.0.1:3001;
+    keepalive 8;
+}
+```
+
+```nginx Weighted Distribution
+upstream example_com {
+    server 127.0.0.1:3000 weight=3;
+    server 127.0.0.1:3001 weight=2;
+    server 127.0.0.1:3002 weight=1;
+    keepalive 8;
+}
+```
+</CodeGroup>
+
+## SSL with Reverse Proxy
+
+Enable SSL for your reverse proxy site:
+
+```bash
+sudo site example.com -ssl=on
+```
+
+NGINX handles SSL termination, so your backend application:
+- Can run on HTTP (no SSL overhead)
+- Receives decrypted traffic
+- Doesn't need SSL certificates
+
+SSL headers are automatically added to forwarded requests.
+
+## Custom Proxy Headers
+
+Edit `/etc/nginx/sites-available/example.com` to customize proxy headers:
+
+### Preserve Original Host
+
+Uncomment to pass the original hostname:
+
+```nginx
+proxy_set_header Host $host;
+```
+
+### Forward Real Client IP
+
+Uncomment to pass client's real IP:
+
+```nginx
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+```
+
+### Forward Protocol Information
+
+Uncomment to pass HTTP/HTTPS info:
+
+```nginx
+proxy_set_header X-Forwarded-Proto $scheme;
+```
+
+## Proxy Cache Configuration
+
+For dedicated reverse proxy with caching:
+
+```bash
+sudo site example.com -proxy=127.0.0.1:3000 -dedicated-reverse-proxy -cache=on
+```
+
+This creates a separate cache zone for your proxy in `/run/nginx-cache/`.
+
+### Custom Cache Validity
+
+```bash
+sudo site example.com -cache-valid=60m
+```
+
+### Skip Cache for Specific Paths
+
+```bash
+sudo site example.com -skip-cache=/api,/admin,/auth
+```
+
+## Proxy in Subfolders
+
+Proxy only specific URL paths to a backend:
+
+```bash
+sudo site example.com -proxy=127.0.0.1:3000 -subfolder=/api
+```
+
+Requests to `example.com/api/*` are proxied to your backend, while other paths can serve static files or use different configurations.
+
+## Advanced Configurations
+
+### Proxy to External Services
+
+Proxy to external APIs or services:
+
+```bash
+sudo site api.example.com -proxy=https://api.external-service.com
+```
+
+<Warning>
+  When proxying to external services:
+  - You may need to set the `Host` header to match the external service
+  - SSL verification should be enabled
+  - Be aware of rate limits on external APIs
+  - Consider caching to reduce external requests
+</Warning>
+
+### S3 or Cloud Storage Proxy
+
+Proxy to S3-compatible storage:
+
+```bash
+sudo site cdn.example.com -proxy=https://bucket.s3.amazonaws.com
+```
+
+Edit the site configuration to set the proper Host header:
+
+```nginx
+proxy_set_header Host 'bucket.s3.amazonaws.com';
+```
+
+## Timeouts and Buffering
+
+Default timeout settings (300 seconds):
+
+```nginx
+proxy_connect_timeout 300;
+proxy_send_timeout    300;
+proxy_read_timeout    300;
+```
+
+For long-running requests, increase these values in `/etc/nginx/sites-available/example.com`.
+
+## Error Handling
+
+Proxy configuration includes:
+
+```nginx
+proxy_intercept_errors on;
+#proxy_next_upstream error timeout http_500;
+```
+
+Uncomment `proxy_next_upstream` to automatically retry failed requests on the next upstream server.
+
+## Deleting Reverse Proxy Sites
+
+When you delete a reverse proxy site:
+
+```bash
+sudo site example.com -delete
+```
+
+Webinoly automatically:
+- Removes the NGINX configuration
+- Deletes the upstream configuration
+- Cleans up cache files (if any)
+
+## Troubleshooting
+
+### Connection Refused
+
+If NGINX shows "connection refused":
+
+1. Verify your backend application is running:
+   ```bash
+   curl http://127.0.0.1:3000
+   ```
+
+2. Check the port number is correct
+
+3. Verify firewall allows the connection
+
+### 502 Bad Gateway
+
+Common causes:
+- Backend application crashed
+- Wrong port number in proxy configuration
+- Backend not listening on specified address
+- Timeout (increase timeout values)
+
+### Headers Not Passed
+
+If your application doesn't receive expected headers:
+
+1. Uncomment necessary proxy headers in site configuration
+2. Verify header names match what your application expects
+3. Check for header size limits
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Security" icon="shield">
+    - Use SSL for production sites
+    - Keep backends on localhost when possible
+    - Set appropriate timeouts
+    - Validate and sanitize headers
+  </Card>
+  
+  <Card title="Performance" icon="gauge-high">
+    - Enable caching for static assets
+    - Use keepalive connections
+    - Configure multiple upstream servers
+    - Monitor backend response times
+  </Card>
+  
+  <Card title="Reliability" icon="circle-check">
+    - Set up multiple backend servers
+    - Configure health checks
+    - Use appropriate load balancing
+    - Enable automatic retry on errors
+  </Card>
+  
+  <Card title="Monitoring" icon="chart-line">
+    - Monitor NGINX error logs
+    - Track upstream status
+    - Watch for timeout errors
+    - Set up alerts for failures
+  </Card>
+</CardGroup>

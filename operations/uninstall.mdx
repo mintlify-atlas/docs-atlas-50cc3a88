@@ -1,0 +1,487 @@
+---
+title: Uninstalling Webinoly
+description: Completely remove Webinoly and optionally remove the entire server stack
+---
+
+## Overview
+
+Webinoly can be completely removed from your server. You can choose to uninstall just the Webinoly application or remove the entire LEMP stack.
+
+<Warning>
+Uninstalling Webinoly and the server stack will delete server configurations and may make your sites inaccessible. Always backup your data before uninstalling.
+</Warning>
+
+## Uninstall Webinoly Application
+
+### Uninstall Command
+
+Remove only the Webinoly application while keeping the stack:
+
+```bash
+sudo webinoly -uninstall
+```
+
+**What happens:**
+
+1. Prompts for confirmation (requires 'y' to proceed)
+2. Creates configuration backup at `~/.webinoly-conf-restore_dont-remove`
+3. Removes Webinoly files:
+   - `/opt/webinoly/` directory
+   - `/usr/bin/webinoly` command
+   - `/usr/bin/stack` command
+   - `/usr/bin/site` command
+   - `/usr/bin/httpauth` command
+   - `/usr/bin/log` command
+4. Exits successfully
+
+### Confirmation Process
+
+The uninstall requires explicit confirmation:
+
+```bash
+$ sudo webinoly -uninstall
+
+[WARNING] You are about to completely remove Webinoly App from your server!!
+Are you sure [y/N]?
+```
+
+Type `y` and press Enter to proceed, or `n` to cancel.
+
+### Skip Configuration Backup
+
+Uninstall without creating configuration backup:
+
+```bash
+sudo webinoly -uninstall -no-recovery
+```
+
+<Warning>
+Without backup, you cannot restore Webinoly configuration if needed. Use this option only if you're certain.
+</Warning>
+
+## What Gets Removed
+
+### Webinoly Application Only
+
+When you uninstall Webinoly:
+
+**Removed:**
+- Webinoly core files (`/opt/webinoly/`)
+- Command-line tools (`webinoly`, `site`, `stack`, `httpauth`, `log`)
+- Configuration file (`/opt/webinoly/webinoly.conf`)
+- Library scripts
+- Templates
+
+**Preserved:**
+- NGINX and all configurations
+- PHP and configurations
+- MySQL/MariaDB and all databases
+- All website files
+- SSL certificates
+- Tools (Redis, Memcached, phpMyAdmin, etc.)
+- System packages
+
+### After Uninstalling Webinoly
+
+Your sites will continue to work normally because:
+
+- NGINX remains installed and configured
+- PHP-FPM continues running
+- MySQL/MariaDB keeps running
+- All site files remain intact
+- SSL certificates are preserved
+
+You'll need to manage the server manually using standard Linux commands.
+
+## Uninstall Server Stack
+
+To remove the entire LEMP stack:
+
+```bash
+sudo stack -purge
+```
+
+**This removes:**
+- NGINX
+- PHP and extensions
+- MySQL/MariaDB
+- All additional tools (Redis, Memcached, etc.)
+
+<Warning>
+This is destructive! All server configurations and services will be removed. Websites will stop working immediately.
+</Warning>
+
+### Selective Stack Removal
+
+Remove specific stack components:
+
+```bash
+# Remove only NGINX
+sudo stack -nginx -purge
+
+# Remove only PHP
+sudo stack -php -purge
+
+# Remove only MySQL/MariaDB
+sudo stack -mysql -purge
+
+# Remove specific tools
+sudo stack -redis -purge
+sudo stack -memcached -purge
+sudo stack -pma -purge
+```
+
+## Backup Before Uninstall
+
+### Essential Backups
+
+Before uninstalling, backup critical data:
+
+```bash
+# 1. Backup all sites and databases
+sudo webinoly -backup=local -export
+
+# 2. Backup Webinoly configuration
+sudo tar -czf ~/webinoly-backup-$(date +%F).tar.gz \
+  /opt/webinoly/webinoly.conf \
+  /opt/webinoly/templates/source/
+
+# 3. Backup NGINX configurations
+sudo tar -czf ~/nginx-backup-$(date +%F).tar.gz \
+  /etc/nginx/
+
+# 4. Backup site files
+sudo tar -czf ~/www-backup-$(date +%F).tar.gz \
+  /var/www/
+
+# 5. Backup SSL certificates
+sudo tar -czf ~/ssl-backup-$(date +%F).tar.gz \
+  /etc/letsencrypt/
+
+# 6. Export all databases
+sudo mysqldump --all-databases -u admin -p > ~/all-databases-$(date +%F).sql
+
+# 7. Backup PHP configuration
+sudo tar -czf ~/php-backup-$(date +%F).tar.gz \
+  /etc/php/
+```
+
+### Download Backups
+
+Download backups to your local machine:
+
+```bash
+# From your local machine
+scp user@server:~/webinoly-backup-*.tar.gz ./
+scp user@server:~/nginx-backup-*.tar.gz ./
+scp user@server:~/www-backup-*.tar.gz ./
+scp user@server:~/ssl-backup-*.tar.gz ./
+scp user@server:~/all-databases-*.sql ./
+scp user@server:~/php-backup-*.tar.gz ./
+```
+
+## Manual Cleanup
+
+After uninstalling, you may want to clean up remaining files:
+
+### Remove Site Files
+
+<Warning>
+This deletes all website files permanently. Ensure you have backups!
+</Warning>
+
+```bash
+# Remove all site files
+sudo rm -rf /var/www/*
+
+# Or remove specific site
+sudo rm -rf /var/www/example.com
+```
+
+### Remove SSL Certificates
+
+```bash
+# Remove all Let's Encrypt certificates
+sudo rm -rf /etc/letsencrypt/
+```
+
+### Remove Configuration Backups
+
+```bash
+# Remove Webinoly recovery backup
+rm ~/.webinoly-conf-restore_dont-remove
+
+# Remove local backups
+rm ~/webinoly-backup-*.tar.gz
+rm ~/nginx-backup-*.tar.gz
+rm ~/www-backup-*.tar.gz
+rm ~/all-databases-*.sql
+```
+
+### Remove Logs
+
+```bash
+# Remove NGINX logs
+sudo rm -rf /var/log/nginx/*
+
+# Remove PHP logs
+sudo rm -rf /var/log/php*
+
+# Remove MySQL logs
+sudo rm -rf /var/log/mysql/*
+```
+
+## Reinstalling Webinoly
+
+### Fresh Installation
+
+If you uninstalled and want to reinstall:
+
+```bash
+# Download and install
+wget -qO weby qrok.es/wy && sudo bash weby
+```
+
+### Restore Configuration
+
+Restore previous configuration after reinstalling:
+
+```bash
+# Restore from automatic backup
+sudo tar -xf ~/.webinoly-conf-restore_dont-remove -C /
+
+# Or restore from manual backup
+sudo tar -xzf ~/webinoly-backup-*.tar.gz -C /
+```
+
+## Alternative: Keep Configuration
+
+If you want to disable Webinoly temporarily without uninstalling:
+
+### Disable Services
+
+```bash
+# Stop services (sites will be down)
+sudo systemctl stop nginx
+sudo systemctl stop php8.3-fpm
+sudo systemctl stop mysql
+
+# Disable autostart
+sudo systemctl disable nginx
+sudo systemctl disable php8.3-fpm
+sudo systemctl disable mysql
+```
+
+### Re-enable Later
+
+```bash
+# Enable autostart
+sudo systemctl enable nginx
+sudo systemctl enable php8.3-fpm
+sudo systemctl enable mysql
+
+# Start services
+sudo systemctl start nginx
+sudo systemctl start php8.3-fpm
+sudo systemctl start mysql
+```
+
+## Migration to Other Servers
+
+### Export Everything
+
+Before uninstalling when migrating:
+
+```bash
+# Export all sites and databases
+sudo webinoly -backup=local -export=full
+
+# On new server, after installing Webinoly:
+sudo webinoly -backup=local -import=full -source=/path/to/backup.tar
+```
+
+### Manual Migration
+
+1. **Backup on old server** (see backup section above)
+
+2. **Install Webinoly on new server**:
+   ```bash
+   wget -qO weby qrok.es/wy && sudo bash weby
+   ```
+
+3. **Transfer backups to new server**:
+   ```bash
+   scp backups/* user@newserver:/tmp/
+   ```
+
+4. **Restore on new server**:
+   ```bash
+   # Restore site files
+   sudo tar -xzf /tmp/www-backup-*.tar.gz -C /
+   
+   # Import databases
+   mysql -u admin -p < /tmp/all-databases-*.sql
+   
+   # Restore SSL certificates
+   sudo tar -xzf /tmp/ssl-backup-*.tar.gz -C /
+   
+   # Recreate sites in Webinoly
+   sudo site example.com -wp
+   ```
+
+5. **Update DNS** to point to new server
+
+6. **Verify everything works** on new server
+
+7. **Uninstall from old server**:
+   ```bash
+   sudo webinoly -uninstall
+   sudo stack -purge
+   ```
+
+## Cleanup Repositories
+
+After removing stack, clean up apt repositories:
+
+```bash
+# Remove NGINX repository
+sudo rm /etc/apt/sources.list.d/nginx.list
+sudo rm /usr/share/keyrings/nginx-archive-keyring.gpg
+
+# Remove PHP repository
+sudo rm /etc/apt/sources.list.d/php.list
+sudo rm /usr/share/keyrings/php-archive-keyring.gpg
+
+# Remove MySQL repository
+sudo rm /etc/apt/sources.list.d/mysql.list
+sudo rm /usr/share/keyrings/mysql-archive-keyring.gpg
+
+# Remove MariaDB repository
+sudo rm /etc/apt/sources.list.d/mariadb.list
+sudo rm /usr/share/keyrings/mariadb-archive-keyring.gpg
+
+# Remove Redis repository
+sudo rm /etc/apt/sources.list.d/redis.list
+sudo rm /usr/share/keyrings/redis-archive-keyring.gpg
+
+# Update package lists
+sudo apt update
+```
+
+## Remove Snap Packages
+
+Remove Certbot and other snap packages:
+
+```bash
+# List installed snaps
+snap list
+
+# Remove Certbot
+sudo snap remove certbot
+
+# Remove snap itself (optional)
+sudo apt purge snapd
+```
+
+## Post-Uninstall Verification
+
+Verify complete removal:
+
+```bash
+# Check Webinoly commands (should fail)
+which webinoly
+which site
+which stack
+
+# Check Webinoly directory (should not exist)
+ls /opt/webinoly/
+
+# Check for running services
+sudo systemctl status nginx
+sudo systemctl status php*-fpm
+sudo systemctl status mysql
+
+# Check listening ports
+sudo netstat -tlnp | grep -E ':(80|443|3306)'
+```
+
+## Troubleshooting Uninstall
+
+### Cannot Uninstall
+
+If uninstall command fails:
+
+```bash
+# Manually remove files
+sudo rm -rf /opt/webinoly/
+sudo rm /usr/bin/webinoly
+sudo rm /usr/bin/stack
+sudo rm /usr/bin/site
+sudo rm /usr/bin/httpauth
+sudo rm /usr/bin/log
+```
+
+### Services Won't Stop
+
+```bash
+# Force stop services
+sudo killall nginx
+sudo killall php-fpm
+sudo killall mysqld
+
+# Then remove packages
+sudo apt purge nginx* php* mysql-server* mariadb-server*
+```
+
+### Ports Still in Use
+
+```bash
+# Find process using port
+sudo lsof -i :80
+sudo lsof -i :443
+
+# Kill process
+sudo kill -9 <PID>
+```
+
+## When to Uninstall
+
+**Consider uninstalling if:**
+- Switching to a different server management tool
+- Migrating to managed hosting
+- Server is being decommissioned
+- Need manual control over all configurations
+- Testing or development server no longer needed
+
+**Do NOT uninstall if:**
+- You're having issues (troubleshoot first)
+- You just want to update (use `-update` instead)
+- You need to change PHP/MySQL version (use `stack` commands)
+- You want to reset configuration (use `-server-reset`)
+
+## Need Help?
+
+Before uninstalling:
+
+1. **Try Troubleshooting**: [Troubleshooting Guide](/operations/troubleshooting)
+2. **Ask Community**: Check GitHub Issues
+3. **Verify First**: Run `webinoly -verify`
+4. **Consider Reset**: Try `webinoly -server-reset=all`
+
+## Feedback
+
+If you're uninstalling, we'd love to hear why:
+
+- Report issues: [GitHub Issues](https://github.com/QROkes/webinoly/issues)
+- Suggest improvements: [GitHub Discussions](https://github.com/QROkes/webinoly/discussions)
+- Share feedback: Help improve Webinoly for others
+
+## Next Steps
+
+After uninstalling:
+
+- **Clean server**: Remove leftover files and configurations
+- **Verify backup**: Ensure all data is safely backed up
+- **Update DNS**: If migrating to new server
+- **Monitor**: Check old server for any remaining services
+- **Document**: Keep notes on configuration for future reference

@@ -1,0 +1,638 @@
+---
+title: 'stack Command Reference'
+description: 'Complete reference for the stack command options and arguments'
+---
+
+## Overview
+
+The `stack` command is used to install, manage, and remove server stack components (Nginx, PHP, MySQL/MariaDB) and related tools.
+
+**Syntax:**
+```bash
+stack <option> <arguments>
+```
+
+## Installation Options
+
+### `-html` / `-nginx`
+
+Install Nginx web server.
+
+**Example:**
+```bash
+stack -nginx
+```
+
+**With build mode:**
+```bash
+stack -nginx -build=light
+```
+
+### `-php`
+
+Install PHP-FPM.
+
+**Example:**
+```bash
+stack -php
+```
+
+**Install with Nginx:**
+```bash
+stack -php=nginx
+```
+
+**With build mode:**
+```bash
+stack -php -build=light
+```
+
+**Force installation without confirmation:**
+```bash
+stack -php=force
+```
+
+### `-mysql`
+
+Install MySQL or MariaDB server.
+
+**Example:**
+```bash
+stack -mysql
+```
+
+**Install client only:**
+```bash
+stack -mysql=client
+```
+
+**With build mode:**
+```bash
+stack -mysql -build=light
+```
+
+### `-lemp`
+
+Install complete LEMP stack (Linux, Nginx, MySQL/MariaDB, PHP).
+
+**Example:**
+```bash
+stack -lemp
+```
+
+**With build mode:**
+```bash
+stack -lemp -build=light
+```
+
+**Available build modes:**
+- `light` - Minimal installation without additional tools
+- `basic` - Standard installation with essential tools (default)
+
+## Additional Tools
+
+### `-letsencrypt`
+
+Install Let's Encrypt (Certbot) for SSL certificates.
+
+**Example:**
+```bash
+stack -letsencrypt
+```
+
+### `-backups`
+
+Install backup tools (duplicity, duply).
+
+**Example:**
+```bash
+stack -backups
+```
+
+### `-postfix`
+
+Install Postfix mail server for PHP mail() function.
+
+**Example:**
+```bash
+stack -postfix
+```
+
+### `-redis`
+
+Install Redis with PHP Redis extension.
+
+**Example:**
+```bash
+stack -redis
+```
+
+### `-memcached`
+
+Install Memcached with PHP Memcached extension.
+
+**Example:**
+```bash
+stack -memcached
+```
+
+### `-pma`
+
+Install phpMyAdmin.
+
+**Example:**
+```bash
+stack -pma
+```
+
+## Version Management
+
+### `-php-ver`
+
+Change PHP version.
+
+**Example:**
+```bash
+stack -php-ver=8.3
+```
+
+**Available versions:** 5.6, 7.0, 7.1, 7.2, 7.3, 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5
+
+**Version switching preserves:**
+- Installed PHP tools (Postfix, Redis, Memcached)
+- phpMyAdmin installation
+- SMTP configuration
+- Site configurations
+
+### `-mysql-ver`
+
+Change MySQL/MariaDB version.
+
+**For MariaDB:**
+```bash
+stack -mysql-ver=11.8
+```
+
+**Available MariaDB versions:** 10.5, 10.6, 10.11, 11.4, 11.8
+
+**For MySQL:**
+```bash
+stack -mysql-ver=8.0
+```
+
+**Available MySQL versions:** 8.0, 8.4, 9.1, 9.2
+
+**Important notes:**
+- Downgrading MySQL/MariaDB is not supported
+- phpMyAdmin is preserved during version changes
+- Data is kept during version upgrades
+- Cannot mix MySQL and MariaDB data
+
+## Removal Options
+
+### `-purge`
+
+Remove stack components.
+
+**Remove Nginx:**
+```bash
+stack -nginx -purge
+```
+
+**Remove with data retention:**
+```bash
+stack -nginx -purge=keep-data
+```
+
+**Force removal without confirmation:**
+```bash
+stack -nginx -purge=force
+```
+
+**Remove PHP:**
+```bash
+stack -php -purge
+```
+
+**Remove MySQL/MariaDB:**
+```bash
+stack -mysql -purge
+```
+
+**Remove MySQL/MariaDB keeping data:**
+```bash
+stack -mysql -purge=keep-data
+```
+
+**Remove Let's Encrypt:**
+```bash
+stack -letsencrypt -purge
+```
+
+**Remove backup tools:**
+```bash
+stack -backups -purge
+```
+
+**Remove Postfix:**
+```bash
+stack -postfix -purge
+```
+
+**Remove Redis:**
+```bash
+stack -redis -purge
+```
+
+**Remove Memcached:**
+```bash
+stack -memcached -purge
+```
+
+**Remove phpMyAdmin:**
+```bash
+stack -pma -purge
+```
+
+### `-purge-server-all`
+
+Remove entire Webinoly stack.
+
+**Example:**
+```bash
+stack -purge-server-all
+```
+
+**Force removal without confirmation:**
+```bash
+stack -purge-server-all=force
+```
+
+**What gets removed:**
+- Nginx and all sites
+- PHP-FPM and all extensions
+- MySQL/MariaDB and all databases
+- Let's Encrypt certificates
+- Backup tools
+- Postfix
+- Redis
+- Memcached
+- phpMyAdmin
+- Pre-installed packages (pwgen, unzip)
+- Swap (if created by Webinoly)
+- All configuration files
+
+## Information
+
+### `-info`
+
+Display stack information.
+
+**Example:**
+```bash
+stack -info
+```
+
+Shows:
+- Installed components and versions
+- Service status
+- Resource usage
+- Configuration details
+
+## Arguments
+
+### `-build`
+
+Specify build mode for installations.
+
+**Available modes:**
+
+**light mode:**
+- Minimal installation
+- No additional tools
+- Suitable for containers or minimal setups
+
+**basic mode (default):**
+- Standard installation
+- Includes recommended tools
+- Postfix (for PHP mail)
+- Redis (for object caching)
+- Memcached (for session storage)
+
+**Examples:**
+```bash
+stack -lemp -build=light
+stack -php -build=basic
+stack -mysql -build=light
+```
+
+### `-purge`
+
+Control removal behavior.
+
+**Values:**
+- No value - Standard removal with confirmation
+- `force` - Skip confirmation prompts
+- `keep-data` - Remove packages but keep data and configuration
+
+**Examples:**
+```bash
+stack -nginx -purge=force
+stack -mysql -purge=keep-data
+```
+
+## Component Details
+
+### Nginx Installation
+
+When installing Nginx, the following is configured:
+- Official Nginx repository
+- Optimized nginx.conf
+- FastCGI cache setup
+- Security headers
+- Default site
+- Admin tools site
+- SSL certificate for default site
+- kTLS module support
+- Gzip compression
+- Brotli compression (if available)
+
+**Files created:**
+- `/etc/nginx/nginx.conf` - Main configuration
+- `/etc/nginx/sites-available/` - Site configurations
+- `/etc/nginx/sites-enabled/` - Enabled sites
+- `/etc/nginx/common/` - Common configuration includes
+- `/var/www/` - Web root directory
+- `/var/run/nginx-cache/` - FastCGI cache directory
+
+### PHP Installation
+
+When installing PHP, the following is configured:
+- Ondřej Surý's PHP PPA (Ubuntu)
+- PHP-FPM with optimized settings
+- Required PHP extensions:
+  - php-fpm - FastCGI Process Manager
+  - php-common - Common files
+  - php-cli - Command-line interface
+  - php-curl - cURL support
+  - php-gd - GD graphics library
+  - php-imap - IMAP support
+  - php-readline - Readline support
+  - php-mysql - MySQL/MariaDB support
+  - php-mbstring - Multibyte string support
+  - php-bcmath - BCMath arbitrary precision mathematics
+  - php-zip - ZIP archive support
+  - php-xml - XML support
+  - php-soap - SOAP support
+  - php-imagick - ImageMagick support
+  - php-msgpack - MessagePack support
+  - php-igbinary - Igbinary support
+  - php-intl - Internationalization support
+  - php-opcache - Zend OPcache (PHP 5.6-8.4)
+
+**PHP-FPM configuration:**
+- Pool configuration at `/etc/php/{ver}/fpm/pool.d/www.conf`
+- php.ini at `/etc/php/{ver}/fpm/php.ini`
+- PHP info page at tools site
+- PHP status page at tools site
+
+### MySQL/MariaDB Installation
+
+**MariaDB (default):**
+- Official MariaDB repository
+- Secure installation
+- Root and admin users created
+- Optimized configuration
+
+**MySQL:**
+- Official MySQL repository
+- Secure installation
+- Root and admin users created
+- Optimized configuration
+
+**Configuration files:**
+- `/etc/mysql/my.cnf` - Main configuration
+- `/etc/mysql/conf.d/` - Additional configurations
+- `/var/lib/mysql/` - Data directory
+
+**Credentials storage:**
+- Root password stored in Webinoly config
+- Admin user for Webinoly operations
+- MySQL client login file at `~/.my.cnf`
+
+### Let's Encrypt Installation
+
+Installs Certbot snap package with:
+- Automatic certificate renewal
+- Cron job for renewals (runs twice daily)
+- DNS plugins available
+- HTTP-01 and DNS-01 challenge support
+
+### Backup Tools Installation
+
+Installs:
+- Duplicity - Encrypted bandwidth-efficient backup
+- Duply - Frontend for duplicity
+- python3-boto3 - AWS S3 support
+
+**Configuration:**
+- Profiles stored at `~/.duply/`
+- Supports local and S3 backups
+- Encryption supported
+
+### Postfix Installation
+
+Installs Postfix configured as:
+- Internet Site mode
+- Local delivery disabled
+- SMTP relay support
+- Sendmail compatibility
+
+**Configuration:**
+- Main config at `/etc/postfix/main.cf`
+- Enables PHP mail() function
+
+### Redis Installation
+
+Installs:
+- Redis server (latest from Redis PPA)
+- PHP Redis extension
+- Persistent storage configuration
+- Unix socket for PHP-FPM
+
+**Configuration:**
+- Config at `/etc/redis/redis.conf`
+- Socket at `/var/run/redis/redis-server.sock`
+- Default maxmemory policy: allkeys-lru
+
+### Memcached Installation
+
+Installs:
+- Memcached server
+- PHP Memcached extension
+- PHP Memcache extension (legacy, PHP 5.6-8.4)
+
+**Configuration:**
+- Config at `/etc/memcached.conf`
+- Default memory: 64MB
+- Unix socket support
+
+### phpMyAdmin Installation
+
+Installs:
+- Latest phpMyAdmin
+- Blowfish secret configured
+- TempDir configured
+- Access via tools site
+
+**Location:**
+- `/var/www/{tools-site}/htdocs/pma/`
+- Access at `https://{tools-site}/pma/`
+
+## Common Usage Examples
+
+### Install complete LEMP stack
+
+```bash
+stack -lemp
+```
+
+### Install Nginx and PHP only
+
+```bash
+stack -php=nginx
+```
+
+### Add Redis to existing installation
+
+```bash
+stack -redis
+```
+
+### Upgrade PHP version
+
+```bash
+stack -php-ver=8.3
+```
+
+### Upgrade MariaDB version
+
+```bash
+stack -mysql-ver=11.8
+```
+
+### Install minimal stack (for Docker)
+
+```bash
+stack -lemp -build=light
+```
+
+### Remove Nginx keeping sites data
+
+```bash
+stack -nginx -purge=keep-data
+```
+
+### Remove entire stack
+
+```bash
+stack -purge-server-all
+```
+
+### Install backup tools
+
+```bash
+stack -backups
+```
+
+### Install phpMyAdmin
+
+```bash
+stack -pma
+```
+
+## Version Compatibility
+
+### PHP Version Support
+
+| Version | Status | Ubuntu Support |
+|---------|--------|----------------|
+| 5.6 | Legacy | All versions |
+| 7.0 | Legacy | All versions |
+| 7.1 | Legacy | All versions |
+| 7.2 | Legacy | All versions |
+| 7.3 | Legacy | All versions |
+| 7.4 | Maintenance | All versions |
+| 8.0 | Security | All versions |
+| 8.1 | Active | All versions |
+| 8.2 | Active | All versions |
+| 8.3 | Active | All versions |
+| 8.4 | Active | All versions |
+| 8.5 | Current | All versions |
+
+### MySQL Version Support
+
+| Version | Status | Architecture |
+|---------|--------|-------------|
+| 8.0 | LTS | x86_64 only |
+| 8.4 | Innovation | x86_64 only |
+| 9.1 | Innovation | x86_64 only |
+| 9.2 | Innovation | x86_64 only |
+
+**Note:** MySQL does not support ARM processors.
+
+### MariaDB Version Support
+
+| Version | Status | Support Until |
+|---------|--------|---------------|
+| 10.5 | Maintenance | June 2025 |
+| 10.6 | LTS | July 2026 |
+| 10.11 | LTS | February 2028 |
+| 11.4 | LTS | May 2029 |
+| 11.8 | Current | - |
+
+## Stack Removal Behavior
+
+### Nginx Removal
+
+**Standard removal:**
+- Removes all sites
+- Removes Let's Encrypt certificates
+- Removes phpMyAdmin
+- Removes backup tools
+- Removes all configuration
+- Removes `/var/www/` directory
+
+**With keep-data:**
+- Removes Nginx package
+- Keeps sites data in `/var/www/`
+- Keeps site configurations
+- Keeps SSL certificates
+- Can be reinstalled later
+
+### PHP Removal
+
+**Removes:**
+- PHP-FPM and all extensions
+- Postfix (if installed)
+- Redis (if installed)
+- Memcached (if installed)
+- phpMyAdmin (depends on PHP)
+- SMTP configuration
+- PHP configuration files
+
+### MySQL/MariaDB Removal
+
+**Standard removal:**
+- Removes all databases
+- Removes all users
+- Removes configuration files
+- Removes phpMyAdmin
+- Cannot be recovered
+
+**With keep-data:**
+- Removes packages
+- Keeps data directory (`/var/lib/mysql/`)
+- Keeps configuration
+- Can be reinstalled later
+- **Important:** Make backups before reinstalling

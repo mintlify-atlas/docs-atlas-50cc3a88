@@ -1,0 +1,563 @@
+---
+title: "httpauth Command"
+description: "Manage HTTP Basic Authentication for sites, WordPress admin areas, and specific URL paths"
+---
+
+## Overview
+
+The `httpauth` command manages HTTP Basic Authentication (username/password protection) for your sites. Secure entire sites, WordPress admin areas, or specific URL paths.
+
+## Basic Usage
+
+```bash
+sudo httpauth [domain] <option> <argument>
+```
+
+## Managing Users
+
+### Add User
+
+Add HTTP authentication user:
+
+```bash
+# Global user (interactive)
+sudo httpauth -add
+
+# Site-specific user (interactive)
+sudo httpauth example.com -add
+
+# Unattended mode
+sudo httpauth -add=[username,password]
+sudo httpauth example.com -add=[username,password]
+```
+
+<ParamField path="-add" type="string">
+  Add user:
+  - `true` - Interactive mode (prompts for credentials)
+  - `[username,password]` - Unattended mode with credentials
+</ParamField>
+
+Example:
+```bash
+# Interactive
+sudo httpauth -add
+# Prompts:
+# HTTP-Auth User: admin
+# HTTP-Auth Password: ********
+
+# Unattended
+sudo httpauth -add=[admin,secretpass123]
+```
+
+<Note>
+  - Usernames cannot contain colons (`:`)
+  - Passwords cannot contain colons (`:`)
+  - Global users work on all sites
+  - Site-specific users only work on that domain
+</Note>
+
+### List Users
+
+List authentication users:
+
+```bash
+# List global users
+sudo httpauth -list
+
+# List site-specific users
+sudo httpauth example.com -list
+```
+
+Example output:
+```
++ admin
++ developer
++ john
+```
+
+### Delete User
+
+Remove authentication user:
+
+```bash
+# Interactive
+sudo httpauth -delete
+
+# Direct
+sudo httpauth -delete=username
+sudo httpauth example.com -delete=username
+```
+
+<ParamField path="-delete" type="string">
+  Delete user:
+  - `true` - Prompts for username
+  - `username` - Delete specific user
+</ParamField>
+
+## WordPress Admin Protection
+
+### Enable/Disable Global WP-Admin Auth
+
+Set default for all new WordPress sites:
+
+```bash
+# Enable for all new WP sites
+sudo httpauth -wp-admin=on
+
+# Disable for all new WP sites
+sudo httpauth -wp-admin=off
+```
+
+<Note>
+  This setting only affects new WordPress installations. Existing sites are not changed.
+</Note>
+
+### Enable/Disable Per-Site WP-Admin Auth
+
+Control WordPress admin authentication for specific sites:
+
+```bash
+# Enable for site
+sudo httpauth example.com -wp-admin=on
+
+# Disable for site
+sudo httpauth example.com -wp-admin=off
+
+# Enable for subfolder installation
+sudo httpauth example.com -wp-admin=on -subfolder=/blog
+```
+
+<ParamField path="-wp-admin" type="string">
+  WordPress admin authentication:
+  - `on` - Enable HTTP auth for `/wp-admin/` and `wp-login.php`
+  - `off` - Disable HTTP auth for WordPress admin
+</ParamField>
+
+Protected paths when enabled:
+- `/wp-admin/` (WordPress admin dashboard)
+- `/wp-login.php` (WordPress login page)
+
+<Note>
+  You must create at least one HTTP auth user (global or site-specific) before enabling WP-Admin protection.
+</Note>
+
+## Path Protection
+
+### Protect URL Path
+
+Add HTTP authentication to specific URL paths:
+
+```bash
+# Protect path (interactive)
+sudo httpauth example.com -path
+
+# Protect specific path
+sudo httpauth example.com -path=/admin
+
+# Protect with exact match only
+sudo httpauth example.com -path=/api/auth -exact
+
+# Protect entire site
+sudo httpauth example.com -path=/
+```
+
+<ParamField path="-path" type="string">
+  URL path to protect:
+  - `true` - Interactive mode (prompts for path)
+  - `/path` - Specific URL path
+  - `/` - Entire site
+</ParamField>
+
+<ParamField path="-exact" type="boolean">
+  Exact path match only (don't match prefixes)
+</ParamField>
+
+**Path matching:**
+
+Without `-exact`:
+```bash
+sudo httpauth example.com -path=/admin
+# Protects:
+# /admin
+# /admin/
+# /admin/users
+# /admin/settings/security
+```
+
+With `-exact`:
+```bash
+sudo httpauth example.com -path=/api/auth -exact
+# Protects only:
+# /api/auth
+# Does NOT protect:
+# /api/auth/
+# /api/auth/login
+```
+
+### Reserved Paths
+
+These paths cannot be protected (already handled by WordPress config):
+
+**Regular paths:**
+- `/wp-admin`
+- `/wp-content/uploads/`
+
+**Exact paths:**
+- `/favicon.ico`
+- `/robots.txt`
+- `/wp-login.php`
+- `/wp-config.txt`
+
+### List Protected Paths
+
+View all protected paths for a site:
+
+```bash
+sudo httpauth example.com -list=protected
+```
+
+Example output:
+```bash
++ /
++ /admin
++ /api/v1 (Exact)
++ /secret/area
+```
+
+### Remove Path Protection
+
+Remove HTTP authentication from paths:
+
+```bash
+# Interactive
+sudo httpauth example.com -path -delete
+
+# Remove specific path
+sudo httpauth example.com -path=/admin -delete
+
+# Remove entire site protection
+sudo httpauth example.com -path=/ -delete
+
+# Remove all protected paths
+sudo httpauth example.com -path -delete-all
+```
+
+Force delete all (no confirmation):
+```bash
+sudo httpauth example.com -path -delete-all=force
+```
+
+## IP Whitelist
+
+Allow specific IP addresses to bypass HTTP authentication:
+
+### Add to Whitelist
+
+```bash
+# Interactive
+sudo httpauth -whitelist
+
+# Add specific IP
+sudo httpauth -whitelist=192.168.1.100
+
+# Add multiple IPs
+sudo httpauth -whitelist=192.168.1.100,192.168.1.101,192.168.1.102
+
+# Add IP range (CIDR)
+sudo httpauth -whitelist=192.168.1.0/24
+```
+
+<ParamField path="-whitelist" type="string">
+  IP address to whitelist:
+  - `true` - Interactive mode
+  - `IP_ADDRESS` - Single IP (e.g., `192.168.1.100`)
+  - `IP,IP,IP` - Multiple IPs comma-separated
+  - `CIDR` - IP range (e.g., `192.168.1.0/24`)
+</ParamField>
+
+### List Whitelisted IPs
+
+```bash
+sudo httpauth -whitelist -list
+```
+
+Example output:
+```bash
++ 192.168.1.100
++ 192.168.1.101
++ 10.0.0.0/8
++ 2001:db8::1
+```
+
+### Remove from Whitelist
+
+```bash
+# Interactive
+sudo httpauth -whitelist -delete
+
+# Remove specific IP
+sudo httpauth -whitelist=192.168.1.100 -delete
+
+# Remove multiple IPs
+sudo httpauth -whitelist=192.168.1.100,192.168.1.101 -delete
+
+# Remove all whitelisted IPs
+sudo httpauth -whitelist -delete-all
+
+# Force remove all (no confirmation)
+sudo httpauth -whitelist -delete-all=force
+```
+
+<Note>
+  Whitelist applies globally to all sites and paths. Whitelisted IPs bypass all HTTP authentication.
+</Note>
+
+## Subfolder Support
+
+HTTP authentication works with WordPress subfolder installations:
+
+```bash
+# Add user for subfolder
+sudo httpauth example.com -add -subfolder=/blog
+
+# Enable WP-Admin auth for subfolder
+sudo httpauth example.com -wp-admin=on -subfolder=/blog
+
+# Protect path in subfolder context
+sudo httpauth example.com -path=/api -subfolder=/blog
+```
+
+<Note>
+  Subfolder support is only available for `-wp-admin` and `-path` options.
+</Note>
+
+## File Locations
+
+### Global Auth File
+
+```
+/etc/nginx/.htpasswd
+```
+
+Stores global HTTP auth users (work on all sites).
+
+### Site-Specific Auth Files
+
+```
+/etc/nginx/apps.d/.htpasswd-example.com
+/etc/nginx/apps.d/.htpasswd-www.example.com
+```
+
+Stores site-specific users.
+
+### Whitelist Configuration
+
+```
+/etc/nginx/apps.d/whitelist-acl.conf
+```
+
+Contains whitelisted IP addresses.
+
+### Path Protection Configurations
+
+```
+/etc/nginx/apps.d/[domain]-nginx.conf
+```
+
+Custom Nginx configuration for protected paths.
+
+## Examples
+
+### Secure WordPress Admin
+
+```bash
+# Create admin user
+sudo httpauth example.com -add=[admin,strongpass123]
+
+# Enable WP-Admin protection
+sudo httpauth example.com -wp-admin=on
+
+# Whitelist your office IP
+sudo httpauth -whitelist=203.0.113.100
+```
+
+### Protect Staging Site
+
+```bash
+# Create staging user
+sudo httpauth staging.example.com -add=[developer,devpass456]
+
+# Protect entire site
+sudo httpauth staging.example.com -path=/
+```
+
+### Secure API Endpoints
+
+```bash
+# Create API user
+sudo httpauth api.example.com -add=[apiuser,secretkey789]
+
+# Protect API paths
+sudo httpauth api.example.com -path=/v1/admin
+sudo httpauth api.example.com -path=/v1/users
+
+# Whitelist application server
+sudo httpauth -whitelist=10.0.1.50
+```
+
+### Development Environment
+
+```bash
+# Add developer users
+sudo httpauth dev.example.com -add=[alice,alicepass]
+sudo httpauth dev.example.com -add=[bob,bobpass]
+
+# Protect entire dev site
+sudo httpauth dev.example.com -path=/
+
+# Whitelist local network
+sudo httpauth -whitelist=192.168.1.0/24
+```
+
+### Multi-User Setup
+
+```bash
+# Add multiple users
+sudo httpauth example.com -add=[admin,pass1]
+sudo httpauth example.com -add=[editor,pass2]
+sudo httpauth example.com -add=[developer,pass3]
+
+# List users
+sudo httpauth example.com -list
+
+# Enable for WP admin
+sudo httpauth example.com -wp-admin=on
+```
+
+## Security Best Practices
+
+### Strong Passwords
+
+Use strong, unique passwords for HTTP auth users:
+
+```bash
+# Good: Random, long password
+sudo httpauth -add=[admin,9Kf$mL2@pNx7qRt!]
+
+# Bad: Weak password
+sudo httpauth -add=[admin,password123]
+```
+
+### IP Whitelisting
+
+Combine HTTP auth with IP whitelisting:
+
+```bash
+# Protect admin area
+sudo httpauth example.com -path=/admin
+
+# Only allow from trusted IPs
+sudo httpauth -whitelist=203.0.113.0/24
+```
+
+### Layer Security
+
+Use HTTP auth as an additional layer, not the only security:
+
+```bash
+# Layer 1: Firewall (limit SSH, etc.)
+# Layer 2: HTTP Auth
+sudo httpauth example.com -wp-admin=on
+# Layer 3: WordPress login
+# Layer 4: Two-factor authentication
+```
+
+### Regular Audits
+
+```bash
+# Review users periodically
+sudo httpauth -list
+sudo httpauth example.com -list
+
+# Review protected paths
+sudo httpauth example.com -list=protected
+
+# Review whitelist
+sudo httpauth -whitelist -list
+```
+
+## Troubleshooting
+
+### Authentication Not Working
+
+1. **Check if users exist:**
+   ```bash
+   sudo httpauth example.com -list
+   ```
+
+2. **Verify path protection:**
+   ```bash
+   sudo httpauth example.com -list=protected
+   ```
+
+3. **Check Nginx config:**
+   ```bash
+   sudo nginx -t
+   cat /etc/nginx/sites-available/example.com
+   ```
+
+4. **Check auth file:**
+   ```bash
+   sudo cat /etc/nginx/apps.d/.htpasswd-example.com
+   ```
+
+### Locked Out
+
+If you're locked out and can't authenticate:
+
+```bash
+# Disable WP-Admin auth
+sudo httpauth example.com -wp-admin=off
+
+# Or remove path protection
+sudo httpauth example.com -path=/ -delete
+
+# Reload Nginx
+sudo systemctl reload nginx
+```
+
+### Whitelist Not Working
+
+1. **Check whitelist file:**
+   ```bash
+   sudo cat /etc/nginx/apps.d/whitelist-acl.conf
+   ```
+
+2. **Verify IP format:**
+   ```bash
+   # Should look like:
+   allow 192.168.1.100;
+   allow 10.0.0.0/8;
+   ```
+
+3. **Test Nginx config:**
+   ```bash
+   sudo nginx -t
+   ```
+
+## Notes
+
+- All commands require `sudo` (root privileges)
+- HTTP auth uses the standard HTTP Basic Authentication protocol
+- Passwords are encrypted with OpenSSL before storage
+- Nginx is automatically reloaded after configuration changes
+- Global users can authenticate on any site
+- Site-specific users only work on their designated site
+- Whitelist is global and affects all sites
+- Use `-help` to see all available options
+
+## See Also
+
+- [Site Management](/cli/site) - Create and manage sites
+- [Log Management](/cli/log) - Monitor authentication attempts
+- [Webinoly Command](/cli/webinoly) - Server configuration

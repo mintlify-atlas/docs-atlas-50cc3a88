@@ -1,0 +1,579 @@
+---
+title: "webinoly Command"
+description: "Main Webinoly server management command for updates, configuration, and system-wide settings"
+---
+
+## Overview
+
+The `webinoly` command is the primary tool for managing your Webinoly installation, server configuration, backups, and global settings.
+
+## Basic Usage
+
+```bash
+sudo webinoly <option> <argument>
+```
+
+## System Management
+
+### Update Webinoly
+
+Update Webinoly to the latest version:
+
+```bash
+sudo webinoly -update
+```
+
+This updates Webinoly itself, not the server stack components.
+
+### Server Reset
+
+Reset server configuration to defaults:
+
+```bash
+sudo webinoly -server-reset
+```
+
+Reset specific components:
+
+<ParamField path="-server-reset" type="string" default="all">
+  Component to reset:
+  - `all` - Reset all configurations (default)
+  - `os` - Operating system settings
+  - `nginx` - Nginx configuration
+  - `php` - PHP configuration
+  - `mysql` - MySQL/MariaDB configuration
+  - `permissions` - File permissions
+  - `confile` - Configuration file
+</ParamField>
+
+```bash
+sudo webinoly -server-reset=nginx
+sudo webinoly -server-reset=php
+```
+
+### Verify Installation
+
+Verify Webinoly installation integrity:
+
+```bash
+sudo webinoly -verify
+```
+
+Critical verification (checks essential components only):
+
+```bash
+sudo webinoly -verify=critical
+```
+
+### Uninstall
+
+Remove Webinoly from your server:
+
+```bash
+sudo webinoly -uninstall
+```
+
+<Warning>
+  This removes Webinoly management tools but keeps your server stack installed. To remove the entire stack, use `sudo stack -purge-server-all` instead.
+</Warning>
+
+### Version Information
+
+Display version information:
+
+```bash
+sudo webinoly -version
+```
+
+Alternatives: `-v`, `-V`
+
+Example output:
+```bash
+Webinoly version: 3.2.1
+Current stack version: 2.1.5
+Available stack version: 2.2.0
+```
+
+## Database Management
+
+### Display Database Password
+
+Show MySQL/MariaDB root credentials:
+
+```bash
+sudo webinoly -dbpass
+```
+
+This displays the root database password stored during installation.
+
+### Change MySQL Password
+
+Change the MySQL/MariaDB root password:
+
+```bash
+sudo webinoly -mysql-password
+```
+
+You'll be prompted to enter a new password.
+
+### MySQL Public Access
+
+Enable or disable remote MySQL access:
+
+```bash
+# Enable public access (bind to 0.0.0.0)
+sudo webinoly -mysql-public-access=on
+
+# Disable public access (bind to localhost)
+sudo webinoly -mysql-public-access=off
+
+# Bind to specific IP
+sudo webinoly -mysql-public-access=192.168.1.100
+```
+
+<ParamField path="-bind" type="string">
+  Specific IP address to bind MySQL to (optional)
+</ParamField>
+
+<Warning>
+  Enabling public MySQL access can be a security risk. Ensure you have proper firewall rules and strong passwords.
+</Warning>
+
+## Tools and Services
+
+### Tools Port
+
+Change the port for the Webinoly tools site:
+
+```bash
+sudo webinoly -tools-port=22222
+```
+
+Default port is `22222`.
+
+### Tools Site
+
+Configure the tools site domain:
+
+```bash
+sudo webinoly -tools-site=tools.example.com
+```
+
+This allows you to access phpMyAdmin and other tools via a domain instead of IP:port.
+
+### SFTP Access
+
+Manage SFTP access for the www-data user:
+
+```bash
+# Enable SFTP access
+sudo webinoly -sftp=on
+
+# Disable SFTP access
+sudo webinoly -sftp=off
+```
+
+When enabled, you can log in via SFTP as the www-data user to manage website files.
+
+### Default Site Response
+
+Configure the default Nginx response for requests to your server IP:
+
+```bash
+# Show default site
+sudo webinoly -default-site=default
+
+# Return 444 (close connection)
+sudo webinoly -default-site=444
+
+# Redirect to a domain
+sudo webinoly -default-site=example.com
+```
+
+## Cache Management
+
+### Clear Cache
+
+Clear various cache types:
+
+```bash
+# Clear all caches
+sudo webinoly -clear-cache
+
+# Clear specific cache types
+sudo webinoly -clear-cache=redis
+sudo webinoly -clear-cache=memcache
+sudo webinoly -clear-cache=opcache
+sudo webinoly -clear-cache=fastcgi
+
+# Clear cache for specific site
+sudo webinoly -clear-cache=example.com
+```
+
+<ParamField path="-clear-cache" type="string" default="all">
+  Cache type to clear:
+  - `all` - All cache types (default)
+  - `redis` - Redis object cache
+  - `memcache` / `memcached` - Memcached cache
+  - `opcache` - PHP OPcache
+  - `fastcgi` - FastCGI page cache
+  - `[domain]` - FastCGI cache for specific site
+</ParamField>
+
+Supports subfolder option:
+
+```bash
+sudo webinoly -clear-cache=example.com -subfolder=/blog
+```
+
+### Cache Valid Time
+
+Configure FastCGI cache valid time:
+
+```bash
+sudo webinoly -cache-valid=7d
+```
+
+Format: `1h`, `30m`, `7d`, etc.
+
+## Security
+
+### Block IP Addresses
+
+Block IP addresses at the Nginx level:
+
+```bash
+# Block an IP
+sudo webinoly -blockip=192.168.1.100
+
+# Block multiple IPs
+sudo webinoly -blockip=192.168.1.100,192.168.1.101
+
+# Unblock an IP
+sudo webinoly -blockip=192.168.1.100 -delete
+
+# List blocked IPs
+sudo webinoly -blockip -list
+```
+
+## Email Configuration
+
+### Update Email
+
+Set your email address for notifications:
+
+```bash
+sudo webinoly -email=admin@example.com
+```
+
+This email is used for Let's Encrypt notifications and system alerts.
+
+### SMTP Configuration
+
+Configure SMTP for sending emails:
+
+```bash
+# Configure SMTP (interactive)
+sudo webinoly -smtp
+
+# Remove SMTP configuration
+sudo webinoly -smtp -purge
+```
+
+You'll be prompted for SMTP server details, username, and password.
+
+## Backup and Restore
+
+### Local Backups
+
+Create and manage local backups:
+
+```bash
+# Export full server configuration
+sudo webinoly -backup=local -export
+
+# Export specific site
+sudo webinoly -backup=local -export=example.com
+
+# Import server configuration
+sudo webinoly -backup=local -import -source=/path/to/backup.tar
+```
+
+<ParamField path="-export" type="string">
+  Export type:
+  - `true` / `stack` - Server stack configuration
+  - `full` - Complete server backup
+  - `[domain]` - Specific site backup
+</ParamField>
+
+<ParamField path="-import" type="string">
+  Import backup:
+  - `true` / `stack` - Import server configuration
+  - `full` - Import full backup
+</ParamField>
+
+<ParamField path="-source" type="string">
+  Path to backup file for import
+</ParamField>
+
+### Database Backups
+
+Create local database backups:
+
+```bash
+# Backup all databases
+sudo webinoly -backup=local
+
+# Backup with custom filename
+sudo webinoly -backup=local -filename=my-backup.sql
+```
+
+### AWS S3 Backups
+
+Configure and manage S3 backups:
+
+```bash
+# Configure S3 credentials
+sudo webinoly -aws-s3-credentials
+
+# Create backup profile
+sudo webinoly -backup=s3 -profile=daily
+
+# List backup profiles
+sudo webinoly -backup=s3 -list
+
+# Run backup
+sudo webinoly -backup=s3 -run=daily
+
+# Restore from S3
+sudo webinoly -backup=s3 -restore -profile=daily
+
+# Send file to S3
+sudo webinoly -send-to-s3=/path/to/file -bucket=my-bucket
+```
+
+<ParamField path="-profile" type="string">
+  Backup profile name
+</ParamField>
+
+<ParamField path="-bucket" type="string">
+  S3 bucket name
+</ParamField>
+
+<ParamField path="-run" type="string">
+  Run backup with specified profile
+</ParamField>
+
+<ParamField path="-restore" type="boolean">
+  Restore from S3 backup
+</ParamField>
+
+<ParamField path="-date" type="string">
+  Specific backup date to restore
+</ParamField>
+
+<ParamField path="-s3-european-buckets" type="boolean">
+  Use European S3 bucket configuration
+</ParamField>
+
+### Database Import
+
+Import SQL database dump:
+
+```bash
+# Import to new database
+sudo webinoly -db-import=/path/to/dump.sql -dbname=newdb
+
+# Import with options
+sudo webinoly -db-import=/path/to/dump.sql -dbname=newdb -overwrite
+```
+
+<ParamField path="-dbname" type="string">
+  Target database name
+</ParamField>
+
+<ParamField path="-overwrite" type="boolean">
+  Overwrite existing database
+</ParamField>
+
+## System Configuration
+
+### Timezone
+
+Set server timezone:
+
+```bash
+# Interactive (prompts for timezone)
+sudo webinoly -timezone
+
+# Direct
+sudo webinoly -timezone=America/New_York
+```
+
+See [PHP timezone list](https://www.php.net/manual/en/timezones.php) for valid values.
+
+### Dynamic Variables
+
+Store custom configuration variables:
+
+```bash
+# Set a variable
+sudo webinoly -dynvar=my-variable -value="my value"
+
+# Variable is stored in /opt/webinoly/webinoly.conf
+```
+
+<ParamField path="-dynvar" type="string">
+  Variable name (alphanumeric and hyphens only)
+</ParamField>
+
+<ParamField path="-value" type="string">
+  Variable value
+</ParamField>
+
+## Cache Customization
+
+### Global Cache Rules
+
+Configure global FastCGI cache behavior:
+
+```bash
+# Skip cache for specific URLs
+sudo webinoly -skip-cache=/checkout,/cart
+
+# Skip cache based on cookies
+sudo webinoly -skip-cookie-cache=wordpress_logged_in,comment_author
+
+# Cache specific query strings
+sudo webinoly -query-string-cache=page,product_id
+
+# Never cache specific query strings
+sudo webinoly -query-string-never-cache=nocache,preview
+```
+
+<ParamField path="-skip-cache" type="string">
+  Comma-separated list of URL paths to skip caching
+</ParamField>
+
+<ParamField path="-skip-cookie-cache" type="string">
+  Comma-separated list of cookies that bypass cache
+</ParamField>
+
+<ParamField path="-query-string-cache" type="string">
+  Query strings to include in cache key
+</ParamField>
+
+<ParamField path="-query-string-never-cache" type="string">
+  Query strings that always bypass cache
+</ParamField>
+
+## HTTP Headers
+
+Manage custom HTTP headers:
+
+```bash
+# Add custom header (interactive)
+sudo webinoly -custom-headers
+
+# You'll be prompted for header name and value
+```
+
+## System Information
+
+Display comprehensive system information:
+
+```bash
+sudo webinoly -info
+```
+
+Shows:
+- Webinoly version
+- Server stack versions (Nginx, PHP, MySQL/MariaDB)
+- Installed components
+- Server resources (CPU, RAM, disk)
+- Configuration settings
+
+## Update External Sources
+
+Update external data sources (like IP blocklists):
+
+```bash
+sudo webinoly -external-sources-update
+```
+
+## Examples
+
+### Complete Server Setup
+
+```bash
+# Update Webinoly
+sudo webinoly -update
+
+# Verify installation
+sudo webinoly -verify
+
+# Set timezone
+sudo webinoly -timezone=America/New_York
+
+# Set notification email
+sudo webinoly -email=admin@example.com
+
+# Configure tools site
+sudo webinoly -tools-site=admin.example.com
+```
+
+### Security Hardening
+
+```bash
+# Block malicious IPs
+sudo webinoly -blockip=192.168.1.100,192.168.1.101
+
+# Configure default site response
+sudo webinoly -default-site=444
+
+# Disable MySQL public access
+sudo webinoly -mysql-public-access=off
+```
+
+### Backup Strategy
+
+```bash
+# Configure S3 credentials
+sudo webinoly -aws-s3-credentials
+
+# Create daily backup profile
+sudo webinoly -backup=s3 -profile=daily
+
+# Run backup
+sudo webinoly -backup=s3 -run=daily
+
+# Also create local backup
+sudo webinoly -backup=local -export=full
+```
+
+### Cache Management
+
+```bash
+# Configure cache valid time
+sudo webinoly -cache-valid=7d
+
+# Set global skip cache rules
+sudo webinoly -skip-cache=/checkout,/cart,/my-account
+
+# Clear all caches
+sudo webinoly -clear-cache
+```
+
+## Notes
+
+- All commands require `sudo` (root privileges)
+- Most destructive operations will prompt for confirmation unless `force` is used
+- Configuration changes are stored in `/opt/webinoly/webinoly.conf`
+- Nginx is automatically reloaded after configuration changes
+- Use `-help` to see all available options
+
+## See Also
+
+- [Stack Management](/cli/stack) - Install and configure server components
+- [Site Management](/cli/site) - Create and manage websites
+- [Log Management](/cli/log) - View and manage logs

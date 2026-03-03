@@ -1,0 +1,764 @@
+---
+title: 'site Command Reference'
+description: 'Complete reference for the site command options and arguments'
+---
+
+## Overview
+
+The `site` command is used to create, manage, delete, and configure websites on your Webinoly server.
+
+**Syntax:**
+```bash
+site <domain> <option> <argument>
+```
+
+## Site Creation Options
+
+### `-html`
+
+Create a static HTML site.
+
+**Example:**
+```bash
+site example.com -html
+```
+
+**With subfolder:**
+```bash
+site example.com -html -subfolder=/blog
+```
+
+### `-php`
+
+Create a PHP site without WordPress or MySQL.
+
+**Example:**
+```bash
+site example.com -php
+```
+
+**With subfolder:**
+```bash
+site example.com -php -subfolder=/app
+```
+
+### `-mysql`
+
+Create a PHP site with MySQL database (no WordPress).
+
+**Example:**
+```bash
+site example.com -mysql
+```
+
+**Custom database configuration:**
+```bash
+site example.com -mysql=[setupmysql,setupwp,dbhost,dbname,dbuser,dbpass,extdbuser,extdbpass]
+```
+
+**Parameters:**
+- `setupmysql`: true/false - Setup MySQL database
+- `dbhost`: Database host (e.g., localhost or remote IP)
+- `dbname`: Database name
+- `dbuser`: Database username
+- `dbpass`: Database password (use "random" for auto-generated)
+- `extdbuser`: External database admin user
+- `extdbpass`: External database admin password
+
+**Example with custom values:**
+```bash
+site example.com -mysql=[true,false,localhost,mydb,dbuser,random,root,rootpass]
+```
+
+### `-wp`
+
+Create a WordPress site.
+
+**Example:**
+```bash
+site example.com -wp
+```
+
+**Custom WordPress configuration:**
+```bash
+site example.com -wp=[setupmysql,setupwp,dbhost,dbname,dbuser,dbpass,dbpref,extdbuser,extdbpass]
+```
+
+**Parameters:**
+- `setupmysql`: true/false - Setup MySQL database
+- `setupwp`: true/false - Install WordPress
+- `dbhost`: Database host
+- `dbname`: Database name
+- `dbuser`: Database username
+- `dbpass`: Database password (use "random" for auto-generated)
+- `dbpref`: WordPress table prefix (default: wp_)
+- `extdbuser`: External database admin user
+- `extdbpass`: External database admin password
+
+**Example with custom values:**
+```bash
+site example.com -wp=[true,true,localhost,wpdb,wpuser,random,wp_,root,rootpass]
+```
+
+**With subfolder:**
+```bash
+site example.com -wp -subfolder=/blog
+```
+
+**With environment type:**
+```bash
+site example.com -wp -env=staging
+```
+
+### `-empty`
+
+Create an empty site for custom Nginx configuration.
+
+**Example:**
+```bash
+site example.com -empty
+```
+
+**Blank mode (no default configuration):**
+```bash
+site example.com -empty=blank
+```
+
+With empty sites, add your custom Nginx configuration to:
+- `/var/www/example.com/*-nginx.conf`
+
+### `-parked`
+
+Create a parked domain that points to another site.
+
+**Example:**
+```bash
+site parked-domain.com -parked=main-domain.com
+```
+
+### `-proxy`
+
+Create a reverse proxy site.
+
+**Example:**
+```bash
+site example.com -proxy=http://localhost:3000
+```
+
+**With dedicated configuration:**
+```bash
+site example.com -proxy=http://backend-server:8080 -dedicated-reverse-proxy
+```
+
+### `-forward`
+
+Create a domain forward/redirect.
+
+**Example:**
+```bash
+site old-domain.com -forward=https://new-domain.com
+```
+
+## Site Management Options
+
+### `-on`
+
+Enable a disabled site.
+
+**Example:**
+```bash
+site example.com -on
+```
+
+### `-off`
+
+Disable a site without deleting it.
+
+**Example:**
+```bash
+site example.com -off
+```
+
+### `-delete`
+
+Delete a site completely.
+
+**Example:**
+```bash
+site example.com -delete
+```
+
+**Delete subfolder:**
+```bash
+site example.com -delete -subfolder=/blog
+```
+
+### `-delete-all`
+
+Delete all sites on the server.
+
+**Example:**
+```bash
+site -delete-all
+```
+
+**Force deletion without confirmation:**
+```bash
+site -delete-all=force
+```
+
+### `-list`
+
+List all sites on the server.
+
+**Example:**
+```bash
+site -list
+```
+
+### `-info`
+
+Display detailed information about a site.
+
+**Example:**
+```bash
+site example.com -info
+```
+
+**With subfolder:**
+```bash
+site example.com -info -subfolder=/blog
+```
+
+## SSL/TLS Options
+
+### `-ssl`
+
+Manage SSL certificates for sites.
+
+**Enable SSL (Let's Encrypt):**
+```bash
+site example.com -ssl=on
+```
+
+**Disable SSL:**
+```bash
+site example.com -ssl=off
+```
+
+**Renew all certificates:**
+```bash
+site -ssl=renew
+```
+
+**Force renewal for specific site:**
+```bash
+site example.com -ssl=force-renewal
+```
+
+**Force renewal for all sites:**
+```bash
+site -ssl=force-renewal-all
+```
+
+**Custom SSL certificate:**
+```bash
+site example.com -ssl=on -ssl-crt=/path/to/cert.crt -ssl-key=/path/to/cert.key
+```
+
+**Wildcard certificate:**
+```bash
+site example.com -ssl=on -wildcard
+```
+
+**Add subdomain to existing wildcard:**
+```bash
+site sub.example.com -ssl=on -add-to-wildcard=example.com
+```
+
+**Test certificate (staging):**
+```bash
+site example.com -ssl=on -test-cert
+```
+
+**Manual certificate (DNS challenge):**
+```bash
+site example.com -ssl=on -manual
+```
+
+**Ignore SSL errors during renewal:**
+```bash
+site example.com -ssl=on -ignore-ssl
+```
+
+**Revoke certificate:**
+```bash
+site example.com -ssl=off -revoke
+```
+
+### `-force-redirect`
+
+Force www or non-www redirects.
+
+**Force www:**
+```bash
+site example.com -force-redirect=www
+```
+
+**Force non-www (root):**
+```bash
+site example.com -force-redirect=root
+```
+
+**Disable forced redirects:**
+```bash
+site example.com -force-redirect=off
+```
+
+## Cache Management
+
+### `-cache`
+
+Manage FastCGI cache for WordPress sites.
+
+**Enable cache:**
+```bash
+site example.com -cache=on
+```
+
+**Disable cache:**
+```bash
+site example.com -cache=off
+```
+
+**Enable with custom valid time:**
+```bash
+site example.com -cache=on -cache-valid=30d
+```
+
+**Enable with WordPress cache plugin support:**
+```bash
+site example.com -cache=on -wp-cache-plugins
+```
+
+**Custom cache configuration:**
+```bash
+site example.com -cache=on -skip-cache=/cart,/checkout
+site example.com -cache=on -skip-cookie-cache=comment_author,wordpress_logged_in
+site example.com -cache=on -query-string-cache=utm_source,utm_medium
+site example.com -cache=on -query-string-never-cache=nocache
+site example.com -cache=on -query-string-cache-default=ignore
+```
+
+**Reset cache configuration:**
+```bash
+site example.com -cache=on -reset
+```
+
+## WordPress Specific Options
+
+### `-multisite-convert`
+
+Convert WordPress single site to Multisite.
+
+**Subdomain multisite:**
+```bash
+site example.com -multisite-convert=subdomain
+```
+
+**Subdirectory multisite:**
+```bash
+site example.com -multisite-convert=subdirectory
+```
+
+### `-clone-from`
+
+Clone a site from an existing site.
+
+**Clone site:**
+```bash
+site new-site.com -clone-from=existing-site.com
+```
+
+**Clone with subfolder:**
+```bash
+site new-site.com -clone-from=existing-site.com -subfolder=/blog
+```
+
+**Clone subfolder to new site:**
+```bash
+site new-site.com -clone-from=existing-site.com -subfolder=/source-folder
+```
+
+**Overwrite existing site:**
+```bash
+site existing-site.com -clone-from=source-site.com -overwrite=on
+```
+
+### `-replace-content`
+
+Search and replace content in WordPress database.
+
+**Replace URLs:**
+```bash
+site example.com -replace-content -from=http://old-domain.com -to=https://new-domain.com
+```
+
+**With subfolder:**
+```bash
+site example.com -replace-content -from=oldtext -to=newtext -subfolder=/blog
+```
+
+### `-env`
+
+Set WordPress environment type.
+
+**Available environments:**
+- `production` - Production environment
+- `staging` - Staging environment
+- `development` - Development environment
+- `local` - Local environment
+
+**Example:**
+```bash
+site example.com -env=staging
+```
+
+**With subfolder:**
+```bash
+site example.com -env=development -subfolder=/blog
+```
+
+## Redirection Management
+
+### `-redirection`
+
+Manage URL redirections.
+
+**Add redirection:**
+```bash
+site example.com -redirection -from=/old-path -to=/new-path
+```
+
+**With HTTP status code:**
+```bash
+site example.com -redirection -from=/old-path -to=/new-path -http-code=301
+```
+
+**With regex:**
+```bash
+site example.com -redirection -from=/old-(.*) -to=/new-$1 -regex
+```
+
+**Delete redirection:**
+```bash
+site example.com -redirection -from=/old-path -delete
+```
+
+**Delete all redirections:**
+```bash
+site example.com -redirection -delete-all
+```
+
+**List redirections:**
+```bash
+site example.com -redirection -list
+```
+
+## Arguments
+
+### `-root`
+
+Specify custom root directory.
+
+**Example:**
+```bash
+site example.com -php -root=/custom/path
+```
+
+### `-root-path`
+
+Specify custom subdirectory within htdocs.
+
+**Example:**
+```bash
+site example.com -php -root-path=public
+```
+
+This creates the root at `/var/www/example.com/htdocs/public`
+
+### `-subfolder`
+
+Operate on a subfolder within a site.
+
+**Example:**
+```bash
+site example.com -wp -subfolder=/blog
+```
+
+### `-external-db`
+
+Use external database server.
+
+**Example:**
+```bash
+site example.com -wp -external-db=192.168.1.100:3306
+```
+
+### `-wildcard`
+
+Create wildcard SSL certificate.
+
+**Example:**
+```bash
+site example.com -ssl=on -wildcard
+```
+
+### `-ignore-ssl`
+
+Ignore SSL errors during operations.
+
+**Example:**
+```bash
+site example.com -ssl=on -ignore-ssl
+```
+
+### `-ssl-crt`
+
+Path to custom SSL certificate file.
+
+**Example:**
+```bash
+site example.com -ssl=on -ssl-crt=/path/to/cert.crt -ssl-key=/path/to/key.key
+```
+
+### `-ssl-key`
+
+Path to custom SSL key file.
+
+**Example:**
+```bash
+site example.com -ssl=on -ssl-crt=/path/to/cert.crt -ssl-key=/path/to/key.key
+```
+
+### `-manual`
+
+Use manual DNS challenge for SSL.
+
+**Example:**
+```bash
+site example.com -ssl=on -manual
+```
+
+### `-test-cert`
+
+Use Let's Encrypt staging server for testing.
+
+**Example:**
+```bash
+site example.com -ssl=on -test-cert
+```
+
+### `-overwrite`
+
+Overwrite existing site during clone operations.
+
+**Example:**
+```bash
+site example.com -clone-from=source.com -overwrite=on
+```
+
+### `-wp-cache-plugins`
+
+Enable cache plugin compatibility.
+
+**Example:**
+```bash
+site example.com -cache=on -wp-cache-plugins
+```
+
+### `-dedicated-reverse-proxy`
+
+Use dedicated reverse proxy configuration.
+
+**Example:**
+```bash
+site example.com -proxy=http://localhost:8080 -dedicated-reverse-proxy
+```
+
+### `-cache-valid`
+
+Set cache validity period.
+
+**Examples:**
+```bash
+site example.com -cache=on -cache-valid=30d
+site example.com -cache=on -cache-valid=12h
+site example.com -cache=on -cache-valid=600m
+```
+
+### `-skip-cache`
+
+Define URLs to skip from cache.
+
+**Example:**
+```bash
+site example.com -cache=on -skip-cache=/cart,/checkout,/my-account
+```
+
+### `-skip-cookie-cache`
+
+Define cookies that skip cache.
+
+**Example:**
+```bash
+site example.com -cache=on -skip-cookie-cache=comment_author,wordpress_logged_in
+```
+
+### `-query-string-cache`
+
+Define query strings to include in cache.
+
+**Example:**
+```bash
+site example.com -cache=on -query-string-cache=utm_source,utm_medium,utm_campaign
+```
+
+### `-query-string-never-cache`
+
+Define query strings to never cache.
+
+**Example:**
+```bash
+site example.com -cache=on -query-string-never-cache=nocache,preview
+```
+
+### `-query-string-cache-default`
+
+Set default behavior for query strings.
+
+**Options:**
+- `ignore` - Ignore query strings (default)
+- `include` - Include query strings in cache key
+
+**Example:**
+```bash
+site example.com -cache=on -query-string-cache-default=include
+```
+
+### `-reset`
+
+Reset cache configuration to defaults.
+
+**Example:**
+```bash
+site example.com -cache=on -reset
+```
+
+### `-from`
+
+Source value for replace-content or redirection operations.
+
+**Example:**
+```bash
+site example.com -replace-content -from=http://old-domain.com -to=https://new-domain.com
+```
+
+### `-to`
+
+Destination value for replace-content or redirection operations.
+
+**Example:**
+```bash
+site example.com -redirection -from=/old -to=/new
+```
+
+### `-http-code`
+
+HTTP status code for redirections.
+
+**Common codes:**
+- `301` - Permanent redirect
+- `302` - Temporary redirect
+- `307` - Temporary redirect (preserves method)
+- `308` - Permanent redirect (preserves method)
+
+**Example:**
+```bash
+site example.com -redirection -from=/old -to=/new -http-code=301
+```
+
+### `-regex`
+
+Use regex patterns in redirections.
+
+**Example:**
+```bash
+site example.com -redirection -from=/old-(.*) -to=/new-$1 -regex
+```
+
+### `-revoke`
+
+Revoke SSL certificate when disabling.
+
+**Example:**
+```bash
+site example.com -ssl=off -revoke
+```
+
+### `-db-role`
+
+Set database role for multisite.
+
+**Example:**
+```bash
+site example.com -multisite-convert=subdomain -db-role=primary
+```
+
+### `-domain-mapping-wp-id`
+
+WordPress site ID for domain mapping.
+
+**Example:**
+```bash
+site mapped-domain.com -parked=main-site.com -domain-mapping-wp-id=2
+```
+
+## Common Usage Examples
+
+### Create a basic WordPress site with SSL
+
+```bash
+site example.com -wp
+site example.com -ssl=on
+```
+
+### Create staging site from production
+
+```bash
+site staging.example.com -clone-from=example.com
+site staging.example.com -env=staging
+```
+
+### Setup WordPress with caching
+
+```bash
+site example.com -wp
+site example.com -cache=on
+site example.com -ssl=on
+```
+
+### Create reverse proxy with SSL
+
+```bash
+site api.example.com -proxy=http://localhost:3000
+site api.example.com -ssl=on
+```
+
+### Migrate site to new domain
+
+```bash
+site new-domain.com -clone-from=old-domain.com
+site new-domain.com -replace-content -from=http://old-domain.com -to=https://new-domain.com
+site new-domain.com -ssl=on
+```

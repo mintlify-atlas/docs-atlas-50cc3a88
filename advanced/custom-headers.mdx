@@ -1,0 +1,444 @@
+---
+title: Custom HTTP Headers
+description: Configure security and custom HTTP headers for enhanced site protection
+---
+
+HTTP headers control how browsers and clients interact with your site. Webinoly provides easy configuration for security headers and custom header management.
+
+## Security Headers
+
+Webinoly includes several security headers configured by default. You can customize them to match your security requirements.
+
+### X-Content-Type-Options
+
+Prevents MIME type sniffing:
+
+```bash
+# Enable (default: enabled)
+sudo webinoly -header-xcto=true
+
+# Disable
+sudo webinoly -header-xcto=false
+```
+
+Sets: `X-Content-Type-Options: nosniff`
+
+### X-Frame-Options
+
+Protects against clickjacking attacks:
+
+```bash
+# Same origin only (default)
+sudo webinoly -header-xfo=SAMEORIGIN
+
+# Deny all framing
+sudo webinoly -header-xfo=DENY
+
+# Allow specific URL
+sudo webinoly -header-xfo=ALLOW-FROM -header-xfo-url=https://trusted.com
+
+# Disable
+sudo webinoly -header-xfo=off
+```
+
+Valid values:
+- `DENY` - No framing allowed
+- `SAMEORIGIN` - Only same-origin framing
+- `ALLOW-FROM` - Specific URL (requires `-header-xfo-url`)
+- `off` - Disable header
+
+### X-XSS-Protection
+
+Cross-site scripting filter:
+
+```bash
+# Enable (legacy browser protection)
+sudo webinoly -header-xssp=true
+
+# Disable (modern browsers use CSP)
+sudo webinoly -header-xssp=false
+```
+
+Sets: `X-XSS-Protection: 1; mode=block`
+
+<Tip>
+Modern browsers rely on Content Security Policy. This header is mainly for legacy browser support.
+</Tip>
+
+### Referrer-Policy
+
+Controls referrer information sent to other sites:
+
+```bash
+# Strict origin when cross-origin (default)
+sudo webinoly -header-referrer=strict-origin-when-cross-origin
+
+# No referrer sent
+sudo webinoly -header-referrer=no-referrer
+
+# Origin only
+sudo webinoly -header-referrer=origin
+
+# Disable
+sudo webinoly -header-referrer=off
+```
+
+Valid values:
+- `no-referrer`
+- `no-referrer-when-downgrade`
+- `origin`
+- `origin-when-cross-origin`
+- `same-origin`
+- `strict-origin`
+- `strict-origin-when-cross-origin`
+- `unsafe-url`
+- `off`
+
+### Cache-Control
+
+Controls browser and proxy caching:
+
+```bash
+# No cache (default)
+sudo webinoly -header-cache-control=no-cache
+
+# Allow caching
+sudo webinoly -header-cache-control="public, max-age=31536000"
+
+# Private cache only
+sudo webinoly -header-cache-control="private, max-age=600"
+
+# Disable
+sudo webinoly -header-cache-control=off
+```
+
+<Warning>
+Cache-Control affects HTML pages. Static assets use separate cache headers.
+</Warning>
+
+### HTTP Strict Transport Security (HSTS)
+
+Forces HTTPS connections:
+
+```bash
+# Enable with 1 year (default: 31536000 seconds)
+sudo webinoly -header-hsts=31536000
+
+# Enable with preload (2 years + preload list)
+sudo webinoly -header-hsts=preload
+
+# Custom duration (6 months)
+sudo webinoly -header-hsts=15768000
+
+# Disable
+sudo webinoly -header-hsts=off
+```
+
+Format:
+- Number: Max-age in seconds (max: 31536000 for 1 year)
+- `preload`: Enables HSTS preload (63072000 seconds / 2 years)
+- `default`: Use default value (1 year)
+- `off`: Disable HSTS
+
+<Warning>
+HSTS with preload is irreversible without browser update. Only use when you're certain HTTPS will always be available.
+</Warning>
+
+### Content Security Policy (CSP)
+
+Define allowed content sources:
+
+```bash
+# Basic CSP
+sudo webinoly -header-csp="default-src 'self'"
+
+# Comprehensive CSP
+sudo webinoly -header-csp="default-src 'self'; script-src 'self' 'unsafe-inline' cdn.example.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'self'"
+
+# Report-only mode (testing)
+sudo webinoly -header-csp="default-src 'self'" -header-csp-report-only=on
+
+# Disable report-only
+sudo webinoly -header-csp-report-only=off
+
+# Remove CSP
+sudo webinoly -header-csp=""
+```
+
+<Tip>
+Start with report-only mode to test CSP without breaking functionality:
+```bash
+sudo webinoly -header-csp="default-src 'self'" -header-csp-report-only=on
+```
+Monitor browser console for CSP violations, then adjust policy and switch to enforcing mode.
+</Tip>
+
+### Permissions Policy
+
+Control browser features and APIs:
+
+```bash
+# Block FLoC (Google's tracking)
+sudo webinoly -header-permissions=floc
+
+# Custom permissions
+sudo webinoly -header-permissions="geolocation=(), camera=(), microphone=()"
+
+# Allow specific origins
+sudo webinoly -header-permissions="geolocation=(self https://maps.example.com), camera=()"
+
+# Remove header
+sudo webinoly -header-permissions=""
+```
+
+Common directives:
+- `geolocation=()`
+- `camera=()`
+- `microphone=()`
+- `payment=()`
+- `usb=()`
+- `interest-cohort=()` (blocks FLoC)
+
+### X-Robots-Tag
+
+Control search engine indexing:
+
+```bash
+# No indexing
+sudo webinoly -header-robots="noindex, nofollow"
+
+# No archiving
+sudo webinoly -header-robots="noarchive"
+
+# Multiple directives (use pipe separator)
+sudo webinoly -header-robots="noindex|noarchive"
+
+# Remove header
+sudo webinoly -header-robots=""
+```
+
+Common values:
+- `noindex` - Don't index pages
+- `nofollow` - Don't follow links
+- `noarchive` - Don't cache pages
+- `nosnippet` - Don't show snippets
+- `none` - Equivalent to noindex,nofollow
+
+## Custom Headers
+
+Add your own custom headers beyond the predefined security headers.
+
+### Add Custom Headers
+
+1. Create custom header files:
+
+```bash
+# HTTP headers (all requests)
+sudo nano /opt/webinoly/templates/source/custom_header_http_webinoly.data
+
+# HTTPS headers (SSL only)
+sudo nano /opt/webinoly/templates/source/custom_header_https_webinoly.data
+
+# HTML headers (HTML responses only)
+sudo nano /opt/webinoly/templates/source/custom_header_html_webinoly.data
+```
+
+2. Add headers in Nginx format:
+
+```nginx
+add_header X-Custom-Header "Custom Value";
+add_header X-Server-ID "server-01";
+add_header X-API-Version "2.0";
+```
+
+3. Reload custom headers:
+
+```bash
+sudo webinoly -custom-headers=reload
+```
+
+### Remove Custom Headers
+
+```bash
+sudo webinoly -custom-headers=remove
+```
+
+This removes custom headers from Nginx configuration but preserves the source files.
+
+### Header Contexts
+
+**HTTP Headers** (`custom_header_http_webinoly.data`):
+- Applied to all HTTP and HTTPS requests
+- Suitable for: CORS, API headers, general security headers
+
+**HTTPS Headers** (`custom_header_https_webinoly.data`):
+- Applied only to HTTPS requests
+- Suitable for: HSTS, strict security headers, SSL-specific headers
+
+**HTML Headers** (`custom_header_html_webinoly.data`):
+- Applied only to HTML responses (text/html)
+- Suitable for: CSP, frame options, content-specific headers
+
+## Header Configuration Files
+
+Webinoly header configurations are stored in:
+
+- `/etc/nginx/common/headers-http.conf` - HTTP/HTTPS headers
+- `/etc/nginx/common/headers-https.conf` - HTTPS-only headers
+- `/etc/nginx/common/headers-html.conf` - HTML response headers
+- `/etc/nginx/common/headers.conf` - Main header include file
+
+## Common Header Configurations
+
+### Secure WordPress Site
+
+```bash
+# Prevent framing
+sudo webinoly -header-xfo=SAMEORIGIN
+
+# HSTS with preload
+sudo webinoly -header-hsts=preload
+
+# Content Security Policy
+sudo webinoly -header-csp="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:"
+
+# Block FLoC
+sudo webinoly -header-permissions=floc
+```
+
+### API Server Headers
+
+```bash
+# CORS headers in custom file
+sudo nano /opt/webinoly/templates/source/custom_header_http_webinoly.data
+```
+
+Add:
+```nginx
+add_header Access-Control-Allow-Origin "https://app.example.com";
+add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS";
+add_header Access-Control-Allow-Headers "Authorization, Content-Type";
+add_header Access-Control-Max-Age "86400";
+```
+
+Then reload:
+```bash
+sudo webinoly -custom-headers=reload
+```
+
+### Staging Environment
+
+```bash
+# Prevent search engine indexing
+sudo webinoly -header-robots="noindex, nofollow"
+
+# Add environment indicator
+sudo nano /opt/webinoly/templates/source/custom_header_http_webinoly.data
+```
+
+Add:
+```nginx
+add_header X-Environment "staging";
+```
+
+### Static Asset Server
+
+```bash
+# Long cache times
+sudo webinoly -header-cache-control="public, max-age=31536000, immutable"
+
+# CORS for fonts
+sudo nano /opt/webinoly/templates/source/custom_header_http_webinoly.data
+```
+
+Add:
+```nginx
+add_header Access-Control-Allow-Origin "*";
+```
+
+## Testing Headers
+
+Verify your header configuration:
+
+```bash
+# Check all headers
+curl -I https://example.com
+
+# Check specific header
+curl -I https://example.com | grep X-Frame-Options
+
+# Verbose output
+curl -v https://example.com 2>&1 | grep "<"
+```
+
+Online tools:
+- [SecurityHeaders.com](https://securityheaders.com)
+- [Mozilla Observatory](https://observatory.mozilla.org)
+
+## Header Priority and Overrides
+
+Header precedence in Nginx:
+1. Location-specific headers (most specific)
+2. Server block headers
+3. Common header files (Webinoly defaults)
+4. HTTP block headers (least specific)
+
+To override Webinoly headers, define them in:
+- Site-specific configuration: `/etc/nginx/sites-available/[domain]`
+- Custom header files (as shown above)
+
+## Troubleshooting
+
+### Headers Not Applied
+
+1. Check Nginx configuration:
+   ```bash
+   sudo nginx -t
+   ```
+
+2. Verify header files exist:
+   ```bash
+   ls -la /etc/nginx/common/headers*.conf
+   ```
+
+3. Check if headers are included:
+   ```bash
+   grep "include common/headers" /etc/nginx/sites-available/example.com
+   ```
+
+4. Reload Nginx:
+   ```bash
+   sudo systemctl reload nginx
+   ```
+
+### Conflicting Headers
+
+If multiple `add_header` directives exist:
+- Last definition in same context wins
+- Use `always` parameter to ensure header is always added:
+  ```nginx
+  add_header X-Custom "value" always;
+  ```
+
+### CSP Violations
+
+Debug CSP issues:
+1. Use browser developer console (F12)
+2. Look for CSP violation reports
+3. Start with permissive policy, then restrict:
+   ```bash
+   # Permissive (testing)
+   sudo webinoly -header-csp="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:" -header-csp-report-only=on
+   
+   # Then gradually restrict based on violations
+   ```
+
+## Best Practices
+
+1. **Start Strict**: Enable all security headers, then relax if needed
+2. **Test Changes**: Use report-only mode for CSP before enforcing
+3. **Monitor Impact**: Check site functionality after header changes
+4. **Document Custom Headers**: Comment your custom header files
+5. **Regular Audits**: Periodically review header configuration
+6. **Use HTTPS**: Many security headers only work over HTTPS
+7. **Combine Headers**: Use multiple security headers for defense in depth

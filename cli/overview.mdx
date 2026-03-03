@@ -1,0 +1,241 @@
+---
+title: "CLI Overview"
+description: "Common patterns and conventions for using Webinoly command-line tools"
+---
+
+## Introduction
+
+Webinoly provides a comprehensive set of command-line tools for managing your web server stack. All commands follow consistent patterns and support both interactive and unattended modes.
+
+## Common Patterns
+
+### Command Structure
+
+All Webinoly commands follow this general syntax:
+
+```bash
+command [domain] <option> <argument>
+```
+
+- **command**: The main command (`webinoly`, `site`, `stack`, `httpauth`, `log`)
+- **domain**: Target domain (where applicable)
+- **option**: Primary action or configuration (prefixed with `-`)
+- **argument**: Additional parameters to modify behavior
+
+### Interactive vs. Unattended Mode
+
+Most commands can run in two modes:
+
+**Interactive Mode** - Prompts for missing information:
+```bash
+sudo site example.com -wp
+# Will prompt for database credentials if not provided
+```
+
+**Unattended Mode** - Provides all parameters upfront:
+```bash
+sudo site example.com -wp=[true,true,localhost,dbname,dbuser,dbpass,wp_]
+# No prompts, fully automated
+```
+
+### Force Flag
+
+Many destructive operations support a `force` value to skip confirmation prompts:
+
+```bash
+sudo stack -nginx -purge=force
+sudo site -delete-all=force
+```
+
+## Exit Codes
+
+Webinoly commands use standard exit codes:
+
+- **0**: Success
+- **1**: Error (check error message for details)
+
+## Common Options
+
+### Help
+
+Display help for any command:
+
+```bash
+sudo webinoly -help
+sudo site -help
+sudo stack -help
+```
+
+Alternatives: `-h`, `--help`, `--h`
+
+### Version
+
+Check installed versions:
+
+```bash
+sudo webinoly -version
+```
+
+Alternatives: `-v`, `-V`
+
+### List
+
+View installed components or configured items:
+
+```bash
+sudo site -list
+sudo httpauth -list
+sudo webinoly -backup=s3 -list
+```
+
+### Info
+
+Display detailed information:
+
+```bash
+sudo webinoly -info
+sudo site example.com -info
+```
+
+## Configuration File
+
+Webinoly stores configuration in `/opt/webinoly/webinoly.conf`. You can read and write custom variables:
+
+```bash
+# Set a custom variable
+sudo webinoly -dynvar=my-custom-var -value="my value"
+
+# Variable is now stored in configuration
+```
+
+## Working with Subfolders
+
+Many commands support WordPress installations in subfolders:
+
+```bash
+# Install WordPress in a subfolder
+sudo site example.com -wp -subfolder=/blog
+
+# Manage subfolder installations
+sudo site example.com -cache=on -subfolder=/blog
+sudo httpauth example.com -wp-admin=on -subfolder=/blog
+sudo log example.com -wp -subfolder=/blog
+```
+
+Subfolder format:
+- Must start with `/`
+- Can contain letters, numbers, underscores, hyphens, and forward slashes
+- Cannot end with `/`
+- Example: `/blog`, `/shop`, `/en/blog`
+
+## File Locations
+
+### Nginx Configuration
+
+- Sites available: `/etc/nginx/sites-available/`
+- Sites enabled: `/etc/nginx/sites-enabled/`
+- Main config: `/etc/nginx/nginx.conf`
+- Custom configs: `/etc/nginx/apps.d/`
+
+### Website Files
+
+- Document root: `/var/www/[domain]/htdocs/`
+- Custom Nginx config: `/var/www/[domain]/*-nginx.conf`
+- Site-specific HTTP auth: `/etc/nginx/apps.d/.htpasswd-[domain]`
+
+### Logs
+
+- Nginx access: `/var/log/nginx/[domain].access.log`
+- Nginx error: `/var/log/nginx/[domain].error.log`
+- PHP-FPM: `/var/log/php/[version]/fpm.log`
+- MySQL/MariaDB: `/var/log/mysql/`
+
+### SSL Certificates
+
+- Let's Encrypt: `/etc/letsencrypt/live/[domain]/`
+- Custom certificates: Specified during installation
+
+## Best Practices
+
+### Use sudo
+
+All Webinoly commands require root privileges:
+
+```bash
+sudo webinoly -update
+```
+
+### Verify Before Purging
+
+Always verify your configuration before removing components:
+
+```bash
+# Check what's installed
+sudo webinoly -info
+
+# Then purge if needed
+sudo stack -nginx -purge
+```
+
+### Backup Before Major Changes
+
+Create backups before version changes or major updates:
+
+```bash
+# Backup before changing PHP version
+sudo webinoly -backup=local -export
+sudo stack -php-ver=8.3
+```
+
+### Test Configuration
+
+Nginx configuration is automatically tested and reloaded after most operations. If you make manual changes:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+## Error Handling
+
+When errors occur:
+
+1. **Read the error message** - Webinoly provides descriptive error messages
+2. **Check logs** - Use the `log` command to investigate
+3. **Verify dependencies** - Ensure required packages are installed
+4. **Check file permissions** - Ensure proper ownership of web files
+
+Common error resolutions:
+
+```bash
+# Verify stack installation
+sudo webinoly -verify
+
+# Check Nginx configuration
+sudo nginx -t
+
+# Review recent logs
+sudo log -error
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+
+<Card title="Site Management" icon="globe" href="/cli/site">
+  Create and manage websites
+</Card>
+
+<Card title="Stack Management" icon="layer-group" href="/cli/stack">
+  Install and configure server components
+</Card>
+
+<Card title="HTTP Authentication" icon="lock" href="/cli/httpauth">
+  Secure your sites with HTTP auth
+</Card>
+
+<Card title="Log Management" icon="file-lines" href="/cli/log">
+  Monitor and debug your server
+</Card>
+
+</CardGroup>

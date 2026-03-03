@@ -1,0 +1,252 @@
+---
+title: Installation
+description: Install Webinoly on your Ubuntu server and deploy a complete LEMP stack in minutes.
+---
+
+# Installation
+
+Webinoly provides a simple installation process that downloads and configures everything you need to run a production-ready web server.
+
+## Prerequisites
+
+Before installing Webinoly, ensure your server meets the [requirements](/requirements).
+
+<Note>
+  You must have **root or sudo access** to install Webinoly.
+</Note>
+
+## Installation methods
+
+Webinoly offers several installation options depending on your needs:
+
+### Option 1: LEMP stack (recommended)
+
+Install the complete stack with NGINX, PHP, and MariaDB:
+
+```bash
+wget -qO weby qrok.es/wy && sudo bash weby
+```
+
+This is the default option and installs:
+- NGINX web server
+- PHP 8.4 (default)
+- MariaDB 11.8 (default)
+- Essential tools and optimizations
+
+### Option 2: HTML server only
+
+Install only NGINX for serving static HTML sites:
+
+```bash
+wget -qO weby qrok.es/wy && sudo bash weby -nginx
+```
+
+### Option 3: PHP server
+
+Install NGINX and PHP without a database:
+
+```bash
+wget -qO weby qrok.es/wy && sudo bash weby -php
+```
+
+### Option 4: Clean install
+
+Install only the Webinoly application without any stack components:
+
+```bash
+wget -qO weby qrok.es/wy && sudo bash weby -clean
+```
+
+<Info>
+  With a clean install, you can build your stack later using the `sudo stack -lemp` command.
+</Info>
+
+## Installation process
+
+<Steps>
+  <Step title="Download the installer">
+    The installation script is downloaded from `qrok.es/wy` using wget. This is a shortened URL that points to the latest stable release.
+    
+    ```bash
+    wget -qO weby qrok.es/wy
+    ```
+  </Step>
+  
+  <Step title="Run the installer">
+    Execute the installation script with sudo privileges:
+    
+    ```bash
+    sudo bash weby
+    ```
+    
+    The installer will:
+    - Check for OS compatibility (Ubuntu 24.04 or 22.04)
+    - Verify architecture (arm64 or x86_64)
+    - Download the latest Webinoly package
+    - Extract files to `/opt/webinoly`
+    - Install selected components
+  </Step>
+  
+  <Step title="Wait for completion">
+    The installation process typically takes 5-15 minutes depending on your server speed and selected options. You'll see progress messages as components are installed.
+  </Step>
+  
+  <Step title="Verify installation">
+    After installation completes, verify everything is working:
+    
+    ```bash
+    sudo webinoly -version
+    ```
+    
+    You should see the installed version number (currently 1.20.0).
+  </Step>
+</Steps>
+
+## Installation options
+
+The installation script accepts several parameters:
+
+| Option | Description |
+|--------|-------------|
+| `-nginx` | Install only NGINX (HTML server) |
+| `-php` | Install NGINX + PHP |
+| `-lemp` | Install full LEMP stack (default) |
+| `-clean` | Install only Webinoly app |
+| `-ver=X.X.X` | Install specific version |
+
+### Install specific version
+
+To install a specific version of Webinoly:
+
+```bash
+wget -qO weby qrok.es/wy && sudo bash weby -ver=1.19.0
+```
+
+<Warning>
+  Installing older versions may not be supported on newer Ubuntu releases. Webinoly 1.18.0+ is required for Ubuntu 24.04.
+</Warning>
+
+## Version compatibility
+
+Webinoly version support varies by Ubuntu release:
+
+<CodeGroup>
+```bash Ubuntu 24.04 (Noble)
+# Requires Webinoly 1.18.0 or newer
+wget -qO weby qrok.es/wy && sudo bash weby
+```
+
+```bash Ubuntu 22.04 (Jammy)
+# Supported in all available Webinoly versions
+wget -qO weby qrok.es/wy && sudo bash weby
+```
+
+```bash Ubuntu 20.04 (Focal) - Legacy
+# Updates only, no new installations
+# Last supported version: 1.19.1
+wget -qO weby qrok.es/wy && sudo bash weby upd
+```
+</CodeGroup>
+
+## Post-installation
+
+After installation, Webinoly creates:
+
+- **Configuration file**: `/opt/webinoly/webinoly.conf`
+- **Commands**: Installed in `/usr/bin/`
+- **NGINX configs**: `/etc/nginx/`
+- **Site files**: `/var/www/`
+
+<Note>
+  Be sure your firewall ports are correctly configured. You'll need to allow:
+  - Port 80 (HTTP)
+  - Port 443 (HTTPS)
+  - Port 22 (SSH)
+  - Port 22222 (Webinoly admin tools, optional)
+  
+  See [firewall configuration](https://webinoly.com/install/) for details.
+</Note>
+
+## Updating Webinoly
+
+To update an existing Webinoly installation:
+
+```bash
+sudo webinoly -update
+```
+
+The update process:
+- Downloads the latest version
+- Preserves your configuration
+- Updates stack components if needed
+- Verifies the installation
+
+<Info>
+  Your sites and configurations are preserved during updates. The update command uses the existing installation script with the `upd` parameter.
+</Info>
+
+## Configuration file
+
+Webinoly stores its configuration in `/opt/webinoly/webinoly.conf`. This file contains:
+
+- Installed component versions
+- Default PHP version
+- Database engine (MariaDB or MySQL)
+- Tools port configuration
+- Email settings
+- Custom preferences
+
+<Warning>
+  Do not manually edit the configuration file unless you know what you're doing. Use Webinoly commands to modify settings.
+</Warning>
+
+## Troubleshooting
+
+### Installation fails
+
+If installation fails, check:
+
+1. You're using a supported Ubuntu version
+2. You have root/sudo access
+3. Your server has internet connectivity
+4. You have at least 512MB RAM available
+
+### Verify installation
+
+Run the verification command to check for issues:
+
+```bash
+sudo webinoly -verify
+```
+
+This will check:
+- All installed components
+- Configuration files
+- File permissions
+- Service status
+
+### Clean reinstall
+
+If you need to start fresh:
+
+```bash
+# Uninstall Webinoly
+sudo webinoly -uninstall
+
+# Reinstall
+wget -qO weby qrok.es/wy && sudo bash weby
+```
+
+## Next steps
+
+Now that Webinoly is installed, you can:
+
+<CardGroup cols={2}>
+  <Card title="Quick start guide" icon="rocket" href="/quickstart">
+    Create your first website
+  </Card>
+  
+  <Card title="Documentation" icon="book" href="https://webinoly.com/documentation/">
+    Explore all available commands
+  </Card>
+</CardGroup>

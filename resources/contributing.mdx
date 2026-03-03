@@ -1,0 +1,642 @@
+---
+title: "Contributing to Webinoly"
+description: "Learn how to contribute to the Webinoly project"
+---
+
+## Welcome Contributors
+
+Thank you for your interest in contributing to Webinoly! You don't need to be a developer to contribute. There are many ways to help improve the project.
+
+<Note>
+  For more details about contributing, visit the [official contribution page](https://webinoly.com/contribute/).
+</Note>
+
+---
+
+## Ways to Contribute
+
+<CardGroup cols={2}>
+  <Card title="Report Bugs" icon="bug" href="#reporting-bugs">
+    Help identify and document issues
+  </Card>
+  <Card title="Suggest Features" icon="lightbulb" href="#feature-requests">
+    Propose new features and improvements
+  </Card>
+  <Card title="Write Code" icon="code" href="#code-contributions">
+    Submit pull requests and patches
+  </Card>
+  <Card title="Documentation" icon="book" href="#documentation">
+    Improve docs and write tutorials
+  </Card>
+  <Card title="Test Releases" icon="flask" href="#testing">
+    Test beta versions and updates
+  </Card>
+  <Card title="Support Users" icon="comments" href="#community-support">
+    Help others in the community
+  </Card>
+</CardGroup>
+
+---
+
+## Reporting Bugs
+
+### Before Reporting
+
+<Steps>
+  <Step title="Search Existing Issues">
+    Check if the bug has already been reported:
+    - [GitHub Issues](https://github.com/QROkes/webinoly/issues)
+    - [Community Discussions](https://webinoly.com/community/)
+  </Step>
+  
+  <Step title="Gather Information">
+    Collect relevant information about the issue:
+    ```bash
+    # Get system information
+    sudo webinoly -info
+    
+    # Check versions
+    sudo webinoly -version
+    
+    # Review error logs
+    sudo log example.com -error
+    ```
+  </Step>
+  
+  <Step title="Reproduce the Issue">
+    Try to reproduce the bug consistently:
+    - Document exact steps
+    - Note any error messages
+    - Identify the expected vs actual behavior
+  </Step>
+</Steps>
+
+### Creating a Bug Report
+
+A good bug report should include:
+
+**1. Environment Details**
+- Webinoly version: **1.20.0** (check with `sudo webinoly -version`)
+- Ubuntu version: 24.04 or 22.04
+- Architecture: x86_64 or arm64
+
+**2. Clear Description**
+```markdown
+## Bug Description
+Brief summary of the issue
+
+## Steps to Reproduce
+1. First step
+2. Second step
+3. Third step
+
+## Expected Behavior
+What should happen
+
+## Actual Behavior
+What actually happens
+
+## Error Messages
+```
+Paste any error messages here
+```
+
+## Additional Context
+- Screenshots if applicable
+- Configuration files (sanitize sensitive data)
+- Any workarounds discovered
+```
+
+**3. Submit the Issue**
+
+Go to [GitHub Issues](https://github.com/QROkes/webinoly/issues/new) and create a new issue with your findings.
+
+---
+
+## Feature Requests
+
+### Suggesting New Features
+
+When proposing a new feature:
+
+<AccordionGroup>
+  <Accordion title="Check Existing Requests">
+    Search for similar feature requests:
+    - [GitHub Issues](https://github.com/QROkes/webinoly/issues?q=is%3Aissue+label%3Aenhancement)
+    - [Feature Discussions](https://webinoly.com/community/)
+    
+    If similar request exists, add your use case to that discussion.
+  </Accordion>
+  
+  <Accordion title="Describe the Feature">
+    Provide detailed information:
+    
+    - **Problem**: What problem does it solve?
+    - **Solution**: How should it work?
+    - **Use Case**: Real-world scenarios
+    - **Alternatives**: Other solutions considered
+    - **Benefits**: Why it's valuable
+  </Accordion>
+  
+  <Accordion title="Consider Implementation">
+    Think about:
+    - Backward compatibility
+    - Performance impact
+    - Security implications
+    - User experience
+    - Maintenance burden
+  </Accordion>
+</AccordionGroup>
+
+### Feature Request Template
+
+```markdown
+## Feature Request
+
+### Problem Statement
+Describe the problem or limitation you're facing.
+
+### Proposed Solution
+How would you like this to work?
+
+### Example Usage
+Show how the feature would be used:
+`sudo example-command -new-feature`
+
+### Use Cases
+1. Use case one
+2. Use case two
+
+### Benefits
+- Benefit one
+- Benefit two
+
+### Alternatives Considered
+Other solutions you've thought about.
+```
+
+---
+
+## Code Contributions
+
+### Getting Started
+
+<Steps>
+  <Step title="Fork the Repository">
+    1. Visit [Webinoly GitHub](https://github.com/QROkes/webinoly)
+    2. Click "Fork" button
+    3. Clone your fork:
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/webinoly.git
+    cd webinoly
+    ```
+  </Step>
+  
+  <Step title="Create a Branch">
+    ```bash
+    # Create branch for your feature/fix
+    git checkout -b feature/my-new-feature
+    # or
+    git checkout -b fix/bug-description
+    ```
+  </Step>
+  
+  <Step title="Set Up Development Environment">
+    ```bash
+    # Test your changes on a fresh Ubuntu instance
+    # Use VM or container for testing
+    
+    # Install from your branch
+    wget -qO weby https://raw.githubusercontent.com/YOUR_USERNAME/webinoly/BRANCH/weby
+    sudo bash weby
+    ```
+  </Step>
+</Steps>
+
+### Coding Standards
+
+**Shell Script Guidelines**
+
+```bash
+# Use consistent indentation (tabs)
+# Add comments for complex logic
+# Follow existing code style
+
+# Example function structure
+function_name() {
+	# Function description
+	local var_name="value"
+	
+	if [[ condition ]]; then
+		# Action
+	fi
+}
+
+# Use meaningful variable names
+readonly app_version="1.20.0"
+local domain_name="$1"
+
+# Error handling
+if [[ $? != 0 ]]; then
+	echo "${red}[ERROR] Something went wrong${end}"
+	exit 1
+fi
+```
+
+**Best Practices**
+
+- Always check return codes
+- Use `readonly` for constants
+- Quote variables: `"$variable"`
+- Validate user input
+- Provide helpful error messages
+- Test on both Ubuntu 24.04 and 22.04
+- Test on both x86_64 and arm64 if possible
+
+### Testing Your Changes
+
+**Manual Testing**
+
+```bash
+# Test installation
+sudo bash weby
+
+# Test specific commands
+sudo site test.com -wp
+sudo site test.com -cache=on
+sudo backup test.com
+
+# Test error conditions
+sudo site invalid@domain -wp  # Should show error
+sudo site existing.com -wp    # Should handle duplicate
+
+# Test on different scenarios
+# - Fresh installation
+# - Existing installation
+# - Various Ubuntu versions
+```
+
+**Automated Testing**
+
+```bash
+# Run any existing test scripts
+./tests/test-suite.sh
+
+# Check shell script syntax
+bash -n script.sh
+shellcheck script.sh
+```
+
+### Submitting Pull Requests
+
+<Steps>
+  <Step title="Commit Your Changes">
+    ```bash
+    # Stage changes
+    git add .
+    
+    # Commit with clear message
+    git commit -m "Add feature: description of what was added"
+    # or
+    git commit -m "Fix: description of what was fixed"
+    ```
+  </Step>
+  
+  <Step title="Push to Your Fork">
+    ```bash
+    git push origin feature/my-new-feature
+    ```
+  </Step>
+  
+  <Step title="Create Pull Request">
+    1. Go to [Webinoly Repository](https://github.com/QROkes/webinoly)
+    2. Click "New Pull Request"
+    3. Select your branch
+    4. Fill out the PR template
+    5. Submit for review
+  </Step>
+</Steps>
+
+**Pull Request Template**
+
+```markdown
+## Description
+Clear description of the changes.
+
+## Type of Change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Documentation update
+
+## Testing
+Describe testing performed:
+- Ubuntu version tested
+- Commands tested
+- Edge cases considered
+
+## Checklist
+- [ ] Code follows project style
+- [ ] Comments added for complex code
+- [ ] Documentation updated
+- [ ] No breaking changes (or documented)
+- [ ] Tested on Ubuntu 24.04/22.04
+
+## Related Issues
+Closes #123
+Related to #456
+```
+
+---
+
+## Documentation
+
+### Improving Documentation
+
+**Types of Documentation**
+
+<CardGroup cols={2}>
+  <Card title="Code Comments" icon="code">
+    In-line comments in shell scripts
+  </Card>
+  <Card title="Command Help" icon="terminal">
+    Built-in help text for commands
+  </Card>
+  <Card title="User Guides" icon="book-open">
+    How-to guides and tutorials
+  </Card>
+  <Card title="Reference Docs" icon="list">
+    Complete command reference
+  </Card>
+</CardGroup>
+
+**Documentation Guidelines**
+
+- Use clear, simple language
+- Include practical examples
+- Show expected output
+- Document edge cases
+- Keep it up to date with code changes
+
+**Example Documentation**
+
+````markdown
+## site command
+
+Create and manage websites.
+
+### Syntax
+```bash
+sudo site <domain> [options]
+```
+
+### Options
+- `-wp` - Install WordPress
+- `-cache` - Enable FastCGI cache
+- `-ssl=on` - Enable SSL certificate
+
+### Examples
+
+**Create WordPress site:**
+```bash
+sudo site example.com -wp
+```
+
+**Create with cache enabled:**
+```bash
+sudo site example.com -wp -cache
+```
+
+### Notes
+- Domain must be valid format
+- DNS should point to server
+- SSL certificates generated automatically
+````
+
+---
+
+## Testing
+
+### Beta Testing
+
+Help test new releases before they go live:
+
+**Join Beta Program**
+
+```bash
+# Switch to beta channel
+sudo webinoly -update -beta
+
+# Test new features
+# Report issues found
+
+# Switch back to stable
+sudo webinoly -update
+```
+
+**What to Test**
+
+- Installation on fresh systems
+- Upgrade from previous versions
+- All major commands and options
+- Edge cases and error conditions
+- Performance and resource usage
+
+**Reporting Test Results**
+
+Provide feedback on:
+- What you tested
+- Environment details
+- Issues discovered
+- Performance observations
+- User experience feedback
+
+---
+
+## Community Support
+
+### Helping Others
+
+Contribute by helping other users:
+
+**Where to Help**
+
+- [GitHub Discussions](https://github.com/QROkes/webinoly/discussions)
+- [Community Forums](https://webinoly.com/community/)
+- [Issue Comments](https://github.com/QROkes/webinoly/issues)
+
+**Best Practices**
+
+- Be respectful and patient
+- Ask clarifying questions
+- Provide tested solutions
+- Share relevant documentation
+- Follow up on solutions
+
+**Example Support Response**
+
+```markdown
+Hi @username,
+
+It looks like you're having issues with SSL certificates. Let's troubleshoot:
+
+1. First, check if Certbot is installed:
+   ```bash
+   sudo certbot --version
+   ```
+
+2. Verify your domain DNS:
+   ```bash
+   dig example.com
+   ```
+
+3. Check NGINX configuration:
+   ```bash
+   sudo nginx -t
+   ```
+
+Can you share the output of these commands?
+
+Also, check these resources:
+- [SSL Documentation](link)
+- [Similar Issue #123](link)
+```
+
+---
+
+## Sponsorship
+
+Support the project financially:
+
+<CardGroup cols={3}>
+  <Card title="GitHub Sponsors" icon="github" href="https://github.com/sponsors/QROkes">
+    Sponsor via GitHub
+  </Card>
+  <Card title="PayPal" icon="paypal" href="https://www.paypal.me/qrokes">
+    One-time donation
+  </Card>
+  <Card title="Bitcoin" icon="bitcoin" href="https://www.blockchain.com/en/btc/address/1E3Ybo5UcvaAr1MoK4nBnMRFFY9aEMiku3">
+    Bitcoin donation
+  </Card>
+</CardGroup>
+
+---
+
+## Community Guidelines
+
+### Code of Conduct
+
+**Be Respectful**
+- Treat everyone with respect
+- Welcome newcomers
+- Value diverse perspectives
+- Assume good intentions
+
+**Be Collaborative**
+- Share knowledge freely
+- Give credit where due
+- Provide constructive feedback
+- Work together towards solutions
+
+**Be Professional**
+- Focus on technical merit
+- Avoid personal attacks
+- Stay on topic
+- Follow project guidelines
+
+### Communication Channels
+
+<AccordionGroup>
+  <Accordion title="GitHub Issues">
+    For:
+    - Bug reports
+    - Feature requests
+    - Technical discussions
+    
+    [View Issues](https://github.com/QROkes/webinoly/issues)
+  </Accordion>
+  
+  <Accordion title="GitHub Discussions">
+    For:
+    - General questions
+    - Show and tell
+    - Ideas and proposals
+    
+    [Join Discussions](https://github.com/QROkes/webinoly/discussions)
+  </Accordion>
+  
+  <Accordion title="Social Media">
+    Follow updates:
+    - [X/Twitter](https://x.com/Webinoly)
+    - [Mastodon](https://fosstodon.org/@webinoly)
+    - [Newsletter](https://webinoly.com/newsletter/)
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Recognition
+
+### Contributors
+
+All contributors are recognized:
+- Listed in GitHub contributors
+- Mentioned in release notes
+- Featured on website (for major contributions)
+
+### Hall of Fame
+
+Special recognition for:
+- Major feature implementations
+- Significant bug fixes
+- Outstanding community support
+- Extensive documentation contributions
+
+---
+
+## Get Started
+
+Ready to contribute?
+
+<Steps>
+  <Step title="Pick Your Way to Contribute">
+    Choose what interests you most from the options above.
+  </Step>
+  
+  <Step title="Join the Community">
+    - Star the [GitHub repository](https://github.com/QROkes/webinoly)
+    - Join [discussions](https://github.com/QROkes/webinoly/discussions)
+    - Follow on [social media](https://x.com/Webinoly)
+  </Step>
+  
+  <Step title="Make Your First Contribution">
+    Start small:
+    - Fix a typo in docs
+    - Improve a comment
+    - Answer a question
+    - Test a beta release
+  </Step>
+</Steps>
+
+<Note>
+  Every contribution, no matter how small, is valuable and appreciated!
+</Note>
+
+---
+
+## Questions?
+
+<CardGroup cols={2}>
+  <Card title="Contribution Guide" icon="book" href="https://webinoly.com/contribute/">
+    Detailed contribution guidelines
+  </Card>
+  <Card title="Community Forum" icon="comments" href="https://webinoly.com/community/">
+    Ask questions about contributing
+  </Card>
+  <Card title="GitHub Discussions" icon="github" href="https://github.com/QROkes/webinoly/discussions">
+    Technical discussions
+  </Card>
+  <Card title="Contact" icon="envelope" href="https://webinoly.com/contact/">
+    Reach out directly
+  </Card>
+</CardGroup>

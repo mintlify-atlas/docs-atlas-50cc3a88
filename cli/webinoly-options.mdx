@@ -1,0 +1,879 @@
+---
+title: 'webinoly Command Reference'
+description: 'Complete reference for the webinoly command options and arguments'
+---
+
+## Overview
+
+The `webinoly` command is used to manage Webinoly itself and server-wide settings.
+
+**Syntax:**
+```bash
+webinoly <option> <argument>
+```
+
+## Update & Maintenance
+
+### `-update`
+
+Update Webinoly to the latest version.
+
+**Example:**
+```bash
+webinoly -update
+```
+
+**What gets updated:**
+- Webinoly core scripts
+- Library files
+- Templates
+- Configuration files
+- Bug fixes and security patches
+
+### `-server-reset`
+
+Reset server configuration to defaults.
+
+**Reset all:**
+```bash
+webinoly -server-reset
+```
+
+**Reset specific component:**
+```bash
+webinoly -server-reset=nginx
+webinoly -server-reset=php
+webinoly -server-reset=mysql
+webinoly -server-reset=os
+webinoly -server-reset=permissions
+webinoly -server-reset=confile
+```
+
+**Available reset options:**
+- `all` - Reset everything (default)
+- `nginx` - Reset Nginx configuration
+- `php` - Reset PHP-FPM configuration
+- `mysql` - Reset MySQL/MariaDB configuration
+- `os` - Reset OS settings (timezone, etc.)
+- `permissions` - Reset file permissions
+- `confile` - Reset Webinoly configuration file
+
+### `-verify`
+
+Verify Webinoly installation integrity.
+
+**Example:**
+```bash
+webinoly -verify
+```
+
+**Critical verification only:**
+```bash
+webinoly -verify=critical
+```
+
+**Checks:**
+- File integrity
+- Configuration validity
+- Service status
+- Required packages
+- Permissions
+
+### `-uninstall`
+
+Uninstall Webinoly completely.
+
+**Example:**
+```bash
+webinoly -uninstall
+```
+
+**What gets removed:**
+- Webinoly scripts and files
+- Configuration file
+- Cron jobs
+- Command aliases
+- Does NOT remove stack components (use `stack -purge-server-all` first)
+
+## Information
+
+### `-info`
+
+Display comprehensive system information.
+
+**Example:**
+```bash
+webinoly -info
+```
+
+**Shows:**
+- Server information (OS, kernel, uptime)
+- Webinoly version
+- Stack versions (Nginx, PHP, MySQL)
+- Service status
+- Resource usage (CPU, RAM, disk)
+- Site count
+- Database count
+- Configuration settings
+
+### `-version` / `-v` / `-V`
+
+Display Webinoly and stack versions.
+
+**Example:**
+```bash
+webinoly -version
+```
+
+**Output includes:**
+- Webinoly version
+- Current stack version
+- Available stack version (if update available)
+
+## Database Management
+
+### `-dbpass`
+
+Display MySQL/MariaDB credentials.
+
+**Example:**
+```bash
+webinoly -dbpass
+```
+
+**Shows:**
+- Root password
+- Admin user credentials
+- External database credentials (if configured)
+
+### `-mysql-password`
+
+Change MySQL/MariaDB root and admin passwords.
+
+**Example:**
+```bash
+webinoly -mysql-password
+```
+
+**Interactive mode:**
+- Prompts for new root password
+- Prompts for new admin password
+- Updates stored credentials
+
+### `-mysql-public-access`
+
+Manage MySQL remote access.
+
+**Enable public access:**
+```bash
+webinoly -mysql-public-access=on
+```
+
+**Disable public access:**
+```bash
+webinoly -mysql-public-access=off
+```
+
+**With specific bind address:**
+```bash
+webinoly -mysql-public-access=on -bind=192.168.1.100
+```
+
+**Security note:** Only enable when necessary and use firewall rules to restrict access.
+
+### `-db-import`
+
+Import database from SQL file.
+
+**Example:**
+```bash
+webinoly -db-import -dbname=mydb -file=/path/to/dump.sql
+```
+
+**With overwrite:**
+```bash
+webinoly -db-import -dbname=mydb -file=/path/to/dump.sql -overwrite
+```
+
+**Skip database creation:**
+```bash
+webinoly -db-import -dbname=existing_db -file=/path/to/dump.sql -skip-db
+```
+
+## Server Configuration
+
+### `-tools-port`
+
+Change admin tools port.
+
+**Example:**
+```bash
+webinoly -tools-port=12345
+```
+
+**Default port:** 22222
+
+**Note:** Updates:
+- Nginx configuration
+- Firewall rules (if UFW is enabled)
+
+### `-tools-site`
+
+Configure admin tools domain.
+
+**Set custom domain:**
+```bash
+webinoly -tools-site=tools.example.com
+```
+
+**Disable custom domain:**
+```bash
+webinoly -tools-site=off
+```
+
+**Default:** Access via server IP:port
+
+### `-default-site`
+
+Set default Nginx response for unmatched domains.
+
+**Set default site:**
+```bash
+webinoly -default-site=example.com
+```
+
+**Disable (show default Nginx page):**
+```bash
+webinoly -default-site=off
+```
+
+**Return 444 (connection closed):**
+```bash
+webinoly -default-site=blackhole
+```
+
+### `-sftp`
+
+Manage SFTP access for www-data user.
+
+**Enable SFTP access:**
+```bash
+webinoly -sftp=on
+```
+
+**Disable SFTP access:**
+```bash
+webinoly -sftp=off
+```
+
+**When enabled:**
+- Creates shell for www-data user
+- Allows SFTP login as www-data
+- Useful for web-based file managers
+- Use with caution (security implications)
+
+### `-timezone`
+
+Set server timezone.
+
+**Example:**
+```bash
+webinoly -timezone=America/New_York
+```
+
+**Interactive mode:**
+```bash
+webinoly -timezone
+```
+
+**Updates:**
+- System timezone
+- PHP timezone
+- MySQL timezone
+
+**Valid timezones:** https://www.php.net/manual/en/timezones.php
+
+## Cache Management
+
+### `-cache-valid`
+
+Set global FastCGI cache validity time.
+
+**Example:**
+```bash
+webinoly -cache-valid=30d
+```
+
+**Time formats:**
+- `m` - minutes
+- `h` - hours
+- `d` - days
+- `w` - weeks
+- `M` - months
+- `y` - years
+
+**Examples:**
+```bash
+webinoly -cache-valid=12h
+webinoly -cache-valid=7d
+webinoly -cache-valid=1M
+```
+
+### `-clear-cache`
+
+Clear various caches.
+
+**Clear all caches:**
+```bash
+webinoly -clear-cache
+```
+
+**Clear specific cache:**
+```bash
+webinoly -clear-cache=fastcgi
+webinoly -clear-cache=opcache
+webinoly -clear-cache=redis
+webinoly -clear-cache=memcached
+```
+
+**Clear site-specific FastCGI cache:**
+```bash
+webinoly -clear-cache=example.com
+```
+
+**With subfolder:**
+```bash
+webinoly -clear-cache=example.com -subfolder=/blog
+```
+
+**Available cache types:**
+- `fastcgi` - FastCGI cache for all sites
+- `opcache` - PHP OPcache
+- `redis` - Redis cache
+- `memcache` / `memcached` - Memcached
+- `{domain}` - Site-specific FastCGI cache
+- `all` - All caches
+
+### Global Cache Configuration
+
+**Skip specific URLs globally:**
+```bash
+webinoly -skip-cache=/cart,/checkout,/my-account
+```
+
+**Skip specific cookies globally:**
+```bash
+webinoly -skip-cookie-cache=comment_author,wordpress_logged_in
+```
+
+**Cache specific query strings:**
+```bash
+webinoly -query-string-cache=utm_source,utm_medium,utm_campaign
+```
+
+**Never cache specific query strings:**
+```bash
+webinoly -query-string-never-cache=nocache,preview,debug
+```
+
+**Note:** These settings apply globally to all sites unless overridden at site level.
+
+## Security
+
+### `-blockip`
+
+Block or unblock IP addresses.
+
+**Block IP:**
+```bash
+webinoly -blockip=192.168.1.100
+```
+
+**Block multiple IPs:**
+```bash
+webinoly -blockip=192.168.1.100,192.168.1.101,192.168.1.102
+```
+
+**Block IP range (CIDR):**
+```bash
+webinoly -blockip=192.168.1.0/24
+```
+
+**Unblock IP:**
+```bash
+webinoly -blockip=192.168.1.100 -delete
+```
+
+**List blocked IPs:**
+```bash
+webinoly -blockip -list
+```
+
+**Delete all blocked IPs:**
+```bash
+webinoly -blockip -delete-all
+```
+
+### `-custom-headers`
+
+Manage custom HTTP headers.
+
+**Add custom header:**
+```bash
+webinoly -custom-headers="X-Custom-Header: value"
+```
+
+**Add multiple headers:**
+```bash
+webinoly -custom-headers="X-Header-1: value1,X-Header-2: value2"
+```
+
+**Remove custom headers:**
+```bash
+webinoly -custom-headers -delete
+```
+
+**List custom headers:**
+```bash
+webinoly -custom-headers -list
+```
+
+## Email Configuration
+
+### `-email`
+
+Set email address for notifications.
+
+**Example:**
+```bash
+webinoly -email=admin@example.com
+```
+
+**Used for:**
+- SSL certificate notifications
+- Cron job outputs
+- System notifications
+
+### `-smtp`
+
+Configure SMTP relay for outgoing mail.
+
+**Setup SMTP:**
+```bash
+webinoly -smtp
+```
+
+**Interactive setup prompts for:**
+- SMTP server address
+- SMTP port
+- SMTP username
+- SMTP password
+- SMTP encryption (TLS/STARTTLS)
+
+**Remove SMTP configuration:**
+```bash
+webinoly -smtp -purge
+```
+
+**Requirements:**
+- Postfix must be installed (`stack -postfix`)
+
+## Backup & Restore
+
+### `-backup`
+
+Manage backups.
+
+**Backup wizard:**
+```bash
+webinoly -backup
+```
+
+**Local database backup:**
+```bash
+webinoly -backup=local -dbname=database_name
+```
+
+**Export server configuration:**
+```bash
+webinoly -backup=local -export
+```
+
+**Export specific site:**
+```bash
+webinoly -backup=local -export=example.com
+```
+
+**Import server configuration:**
+```bash
+webinoly -backup=local -import -source=/path/to/backup.tar
+```
+
+**Import types:**
+```bash
+webinoly -backup=local -import=stack    # Stack config only
+webinoly -backup=local -import=full     # Complete restore
+```
+
+**S3 backup profile:**
+```bash
+webinoly -backup=s3
+```
+
+**Run S3 backup:**
+```bash
+webinoly -backup=s3 -run=profile-name
+```
+
+**List S3 backups:**
+```bash
+webinoly -backup=s3 -list=profile-name
+```
+
+**Restore from S3:**
+```bash
+webinoly -backup=s3 -restore=profile-name -date=2024-01-15
+```
+
+**Send file to S3:**
+```bash
+webinoly -send-to-s3 -source=/path/to/file -destination=s3-path
+```
+
+### `-aws-s3-credentials`
+
+Configure AWS S3 credentials.
+
+**Example:**
+```bash
+webinoly -aws-s3-credentials
+```
+
+**Interactive prompts for:**
+- AWS Access Key ID
+- AWS Secret Access Key
+- Default region
+
+**Credentials stored at:** `~/.aws/credentials`
+
+## Advanced Options
+
+### `-dynvar`
+
+Set custom dynamic variables in Webinoly config.
+
+**Set variable:**
+```bash
+webinoly -dynvar=my-custom-var -value="custom value"
+```
+
+**Interactive mode:**
+```bash
+webinoly -dynvar=my-custom-var
+```
+
+**Use cases:**
+- Store custom configuration values
+- Script automation
+- Environment-specific settings
+
+### `-external-sources-update`
+
+Update external data sources.
+
+**Example:**
+```bash
+webinoly -external-sources-update
+```
+
+**Updates:**
+- Timezone database
+- Country codes
+- External lists
+- Reference data
+
+## Backup Arguments
+
+### `-profile`
+
+Backup profile name.
+
+**Example:**
+```bash
+webinoly -backup=s3 -run=myprofile
+```
+
+### `-list`
+
+List backups or configurations.
+
+**Example:**
+```bash
+webinoly -backup=s3 -list=profile-name
+webinoly -blockip -list
+```
+
+### `-bucket`
+
+S3 bucket name.
+
+**Example:**
+```bash
+webinoly -backup=s3 -bucket=my-backup-bucket
+```
+
+### `-source`
+
+Source file or directory for operations.
+
+**Example:**
+```bash
+webinoly -backup=local -import -source=/path/to/backup.tar
+webinoly -send-to-s3 -source=/path/to/file
+```
+
+### `-destination`
+
+Destination path for operations.
+
+**Example:**
+```bash
+webinoly -send-to-s3 -source=/local/file -destination=remote/path
+```
+
+### `-delete`
+
+Delete configuration or entry.
+
+**Example:**
+```bash
+webinoly -blockip=192.168.1.100 -delete
+webinoly -custom-headers -delete
+```
+
+### `-delete-all`
+
+Delete all entries.
+
+**Example:**
+```bash
+webinoly -blockip -delete-all
+```
+
+### `-run`
+
+Execute backup profile.
+
+**Example:**
+```bash
+webinoly -backup=s3 -run=daily-backup
+```
+
+### `-restore`
+
+Restore from backup.
+
+**Example:**
+```bash
+webinoly -backup=s3 -restore=profile-name -date=2024-01-15
+```
+
+### `-date`
+
+Specify backup date for restore.
+
+**Example:**
+```bash
+webinoly -backup=s3 -restore=profile-name -date=2024-01-15
+```
+
+### `-wp`
+
+WordPress-specific backup operations.
+
+**Example:**
+```bash
+webinoly -backup=local -export=example.com -wp
+```
+
+### `-s3-european-buckets`
+
+Use European S3 bucket naming.
+
+**Example:**
+```bash
+webinoly -backup=s3 -bucket=my-bucket -s3-european-buckets
+```
+
+### `-file`
+
+Specify file path.
+
+**Example:**
+```bash
+webinoly -db-import -dbname=mydb -file=/path/to/dump.sql
+```
+
+### `-add-db-pre`
+
+Add database prefix during backup operations.
+
+**Example:**
+```bash
+webinoly -backup=local -export=example.com -add-db-pre
+```
+
+### `-no-recovery`
+
+Skip recovery file creation during import.
+
+**Example:**
+```bash
+webinoly -backup=local -import -source=/path/to/backup.tar -no-recovery
+```
+
+### `-recalculate`
+
+Recalculate during restore operations.
+
+**Example:**
+```bash
+webinoly -backup=s3 -restore=profile-name -recalculate
+```
+
+### `-dbname`
+
+Specify database name.
+
+**Example:**
+```bash
+webinoly -db-import -dbname=mydb -file=/path/to/dump.sql
+webinoly -backup=local -dbname=wordpress_db
+```
+
+### `-skip-db`
+
+Skip database creation during import.
+
+**Example:**
+```bash
+webinoly -db-import -dbname=existing_db -file=/path/to/dump.sql -skip-db
+```
+
+### `-filename`
+
+Specify filename for operations.
+
+**Example:**
+```bash
+webinoly -backup=local -filename=custom-backup-name
+```
+
+### `-overwrite`
+
+Overwrite existing files/databases.
+
+**Example:**
+```bash
+webinoly -db-import -dbname=mydb -file=/path/to/dump.sql -overwrite
+```
+
+### `-value`
+
+Value for dynamic variables.
+
+**Example:**
+```bash
+webinoly -dynvar=my-var -value="my value"
+```
+
+### `-bind`
+
+Bind address for MySQL public access.
+
+**Example:**
+```bash
+webinoly -mysql-public-access=on -bind=192.168.1.100
+```
+
+## Common Usage Examples
+
+### Initial Server Setup
+
+```bash
+webinoly -timezone=America/New_York
+webinoly -email=admin@example.com
+stack -lemp
+```
+
+### Configure SMTP for outgoing mail
+
+```bash
+stack -postfix
+webinoly -smtp
+```
+
+### Setup S3 backups
+
+```bash
+stack -backups
+webinoly -aws-s3-credentials
+webinoly -backup=s3
+```
+
+### Enable remote MySQL access
+
+```bash
+webinoly -mysql-public-access=on
+# Configure firewall to allow port 3306
+```
+
+### Block malicious IPs
+
+```bash
+webinoly -blockip=1.2.3.4,5.6.7.8
+```
+
+### Clear all caches
+
+```bash
+webinoly -clear-cache=all
+```
+
+### Export server configuration
+
+```bash
+webinoly -backup=local -export
+```
+
+### Import server configuration
+
+```bash
+webinoly -backup=local -import=full -source=/path/to/backup.tar
+```
+
+### Change admin tools to custom domain
+
+```bash
+webinoly -tools-site=admin.example.com
+site admin.example.com -ssl=on
+```
+
+### Update Webinoly
+
+```bash
+webinoly -update
+```
+
+### Verify installation
+
+```bash
+webinoly -verify
+```
+
+### Server maintenance
+
+```bash
+webinoly -server-reset=nginx
+webinoly -server-reset=php
+```

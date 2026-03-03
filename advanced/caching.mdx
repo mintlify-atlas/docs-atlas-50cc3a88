@@ -1,0 +1,257 @@
+---
+title: Caching Strategies
+description: Configure FastCGI, Redis, and custom caching for optimal performance
+---
+
+Webinoly provides powerful caching capabilities to significantly improve your site's performance. This guide covers FastCGI cache, Redis object caching, and custom cache configurations.
+
+## FastCGI Cache
+
+FastCGI cache is automatically configured when you create WordPress or PHP sites with caching enabled.
+
+### Enable Cache for a Site
+
+```bash
+sudo site example.com -cache=on
+```
+
+This command:
+- Enables FastCGI caching for WordPress or PHP sites
+- Creates optimized cache configurations
+- Sets up cache bypass rules for logged-in users
+
+### Disable Cache
+
+```bash
+sudo site example.com -cache=off
+```
+
+<Warning>
+Disabling cache will remove all cache-related configurations and may impact site performance.
+</Warning>
+
+### Custom Cache Settings
+
+For advanced users, you can customize cache behavior:
+
+```bash
+# Set custom cache validity period
+sudo site example.com -cache-valid=[200,5m]
+
+# Configure cache skip patterns
+sudo site example.com -skip-cache="/admin|/cart|/checkout"
+
+# Skip cache for specific cookies
+sudo site example.com -skip-cookie-cache="user_session|shopping_cart"
+```
+
+<Tip>
+Use `-cache-valid` to control how long different response codes are cached. Format: `[status_code,time]`
+</Tip>
+
+### Query String Caching
+
+Control how query strings affect caching:
+
+```bash
+# Enable query string caching
+sudo site example.com -query-string-cache=on
+
+# Disable query string caching (default)
+sudo site example.com -query-string-cache=off
+
+# Never cache specific query strings
+sudo site example.com -query-string-never-cache="fbclid|gclid|utm_source"
+```
+
+## Clear Cache
+
+Webinoly provides commands to clear different cache types:
+
+### Clear All Caches
+
+```bash
+sudo webinoly -clear-cache=all
+```
+
+This clears:
+- FastCGI cache
+- OpCache
+- Redis cache
+- Memcached
+
+### Clear Specific Cache Types
+
+```bash
+# Clear FastCGI cache only
+sudo webinoly -clear-cache=fastcgi
+
+# Clear Redis cache
+sudo webinoly -clear-cache=redis
+
+# Clear Memcached
+sudo webinoly -clear-cache=memcached
+
+# Clear OpCache
+sudo webinoly -clear-cache=opcache
+```
+
+### Clear Site-Specific Cache
+
+```bash
+# Clear cache for a specific site
+sudo webinoly -clear-cache=example.com
+
+# Clear cache for a subfolder
+sudo webinoly -clear-cache=example.com -subfolder=/blog
+```
+
+## Redis Object Caching
+
+Redis provides persistent object caching for WordPress and PHP applications.
+
+### Install Redis
+
+Redis is installed as part of the PHP stack:
+
+```bash
+sudo stack -php
+```
+
+Or install separately:
+
+```bash
+sudo stack -redis
+```
+
+### Configure WordPress for Redis
+
+For WordPress sites, install a Redis object cache plugin (like Redis Object Cache) and configure `wp-config.php`:
+
+```php
+define('WP_REDIS_HOST', 'localhost');
+define('WP_REDIS_PORT', 6379);
+```
+
+<Tip>
+Redis is particularly effective for sites with complex database queries or high traffic.
+</Tip>
+
+### Monitor Redis
+
+Check Redis status and statistics:
+
+```bash
+# Connect to Redis CLI
+redis-cli
+
+# Get cache statistics
+redis-cli INFO stats
+
+# Monitor real-time commands
+redis-cli MONITOR
+```
+
+## Memcached
+
+Memcached is an alternative in-memory caching system.
+
+### Install Memcached
+
+```bash
+sudo stack -memcached
+```
+
+### Configure for WordPress
+
+Install a Memcached plugin and add to `wp-config.php`:
+
+```php
+$memcached_servers = array(
+    'default' => array('localhost:11211')
+);
+```
+
+## Cache Configuration Files
+
+Webinoly cache configurations are stored in:
+
+- **FastCGI Config**: `/etc/nginx/conf.d/fastcgi.conf`
+- **Custom Cache**: `/etc/nginx/conf.d/webinoly.conf`
+- **Site Cache**: `/etc/nginx/apps.d/[domain]-[type]cache.conf`
+
+### Default Cache Settings
+
+**FastCGI Cache Validity**:
+- 200 responses: 7 days
+- 301/302 redirects: 7 days  
+- Inactive: 30 days
+- Max size: 256MB (adjusts based on RAM)
+
+**Cache Path**: `/run/nginx-cache/`
+
+## Proxy Cache
+
+For reverse proxy configurations:
+
+```bash
+# Create reverse proxy with caching
+sudo site example.com -proxy=http://backend:8080
+
+# The cache is automatically configured for proxy responses
+```
+
+<Warning>
+Always test cache configurations thoroughly, especially skip rules, to ensure logged-in users and dynamic content work correctly.
+</Warning>
+
+## Best Practices
+
+1. **Start Conservative**: Begin with default cache settings and optimize based on monitoring
+2. **Exclude Dynamic Pages**: Always exclude checkout, cart, and user account pages from cache
+3. **Monitor Cache Hit Rates**: Check `/var/log/nginx/access.log` for cache status
+4. **Clear After Updates**: Clear cache after deploying code changes or WordPress updates
+5. **Use Redis for Objects**: Combine FastCGI page cache with Redis object cache for best results
+
+## Troubleshooting
+
+### Cache Not Working
+
+1. Check cache directory permissions:
+   ```bash
+   ls -la /run/nginx-cache/
+   ```
+
+2. Verify cache configuration:
+   ```bash
+   sudo nginx -t
+   ```
+
+3. Check cache headers:
+   ```bash
+   curl -I https://example.com
+   ```
+
+### Stale Content
+
+If seeing old content:
+
+```bash
+# Clear specific site cache
+sudo webinoly -clear-cache=example.com
+
+# Or manually remove cache files
+sudo rm -rf /run/nginx-cache/example_com*
+```
+
+## Performance Monitoring
+
+Monitor cache effectiveness:
+
+```bash
+# Check cache hit ratio in access logs
+sudo grep 'X-Cache' /var/log/nginx/example.com.access.log | wc -l
+
+# View FastCGI cache statistics
+sudo du -sh /run/nginx-cache/*
+```

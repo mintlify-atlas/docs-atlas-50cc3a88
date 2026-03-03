@@ -1,122 +1,128 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Webinoly",
+  "theme": "aspen",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#00A3E0",
+    "light": "#5BC8F2",
+    "dark": "#0077A8"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/QROkes/webinoly"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/QROkes/webinoly",
+      "x": "https://x.com/Webinoly"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
+              "introduction",
+              "installation",
               "quickstart",
-              "development"
+              "requirements"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Core Concepts",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "concepts/lemp-stack",
+              "concepts/fastcgi-cache",
+              "concepts/security-defaults",
+              "concepts/configuration-file"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Managing Sites",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "sites/creating-sites",
+              "sites/wordpress-sites",
+              "sites/reverse-proxy",
+              "sites/ssl-certificates",
+              "sites/site-management"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Stack Management",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "stack/installing-components",
+              "stack/nginx-configuration",
+              "stack/php-versions",
+              "stack/mysql-mariadb",
+              "stack/additional-tools"
+            ]
+          },
+          {
+            "group": "Advanced Features",
+            "pages": [
+              "advanced/caching",
+              "advanced/backups",
+              "advanced/monitoring-logs",
+              "advanced/http-authentication",
+              "advanced/custom-headers",
+              "advanced/smtp-configuration"
+            ]
+          },
+          {
+            "group": "Operations",
+            "pages": [
+              "operations/server-management",
+              "operations/troubleshooting",
+              "operations/updates",
+              "operations/uninstall"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "CLI Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Commands",
             "pages": [
-              "api-reference/introduction"
+              "cli/overview",
+              "cli/webinoly",
+              "cli/site",
+              "cli/stack",
+              "cli/httpauth",
+              "cli/log"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Options Reference",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "cli/site-options",
+              "cli/stack-options",
+              "cli/webinoly-options"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Resources",
+        "groups": [
+          {
+            "group": "Additional Resources",
+            "pages": [
+              "resources/faq",
+              "resources/examples",
+              "resources/migration-guide",
+              "resources/contributing",
+              "resources/changelog"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

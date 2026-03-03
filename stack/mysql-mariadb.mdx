@@ -1,0 +1,654 @@
+---
+title: MySQL/MariaDB Setup
+description: Install, configure, and manage MySQL or MariaDB database servers with Webinoly
+---
+
+Webinoly provides comprehensive database management with support for both MySQL and MariaDB, including automatic configuration, security hardening, and optimization.
+
+## Database Engine Selection
+
+Webinoly supports both MySQL and MariaDB:
+
+<Tabs>
+  <Tab title="MariaDB (Default)">
+    MariaDB is the default database engine, offering:
+    - Drop-in MySQL replacement
+    - Better performance
+    - More storage engines
+    - Enhanced security
+    - Active development
+  </Tab>
+  
+  <Tab title="MySQL">
+    MySQL is available for compatibility:
+    - Oracle-backed
+    - Wide ecosystem support
+    - JSON improvements
+    - Document store
+  </Tab>
+</Tabs>
+
+## Supported Versions
+
+### MariaDB Versions
+
+<CardGroup cols={3}>
+  <Card title="MariaDB 10.11" icon="database">
+    LTS - Long-term support
+  </Card>
+  <Card title="MariaDB 11.4" icon="database">
+    Current stable release
+  </Card>
+  <Card title="MariaDB 11.8" icon="star">
+    **Default** - Latest stable
+  </Card>
+</CardGroup>
+
+### MySQL Versions
+
+<CardGroup cols={2}>
+  <Card title="MySQL 8.0" icon="database">
+    LTS - Long-term support
+  </Card>
+  <Card title="MySQL 8.4" icon="star">
+    **Default** - Latest LTS
+  </Card>
+</CardGroup>
+
+<Warning>
+**MySQL on ARM**: MySQL does not support ARM processors. If you're on ARM architecture, you must use MariaDB.
+</Warning>
+
+## Installation
+
+### Full Database Server
+
+Install complete MySQL/MariaDB server:
+
+```bash
+sudo stack -mysql
+```
+
+### Client Only
+
+Install only the database client:
+
+```bash
+sudo stack -mysql=client
+```
+
+<Info>
+The client installation is useful for connecting to external database servers without running a local database.
+</Info>
+
+## Choosing Database Engine
+
+### Set Before Installation
+
+<CodeGroup>
+```bash Use MariaDB (Default)
+sudo webinoly -config-set=db-engine:mariadb
+sudo webinoly -config-set=mysql-ver:11.8
+sudo stack -mysql
+```
+
+```bash Use MySQL
+sudo webinoly -config-set=db-engine:mysql
+sudo webinoly -config-set=mysql-ver:8.4
+sudo stack -mysql
+```
+</CodeGroup>
+
+### Check Current Engine
+
+```bash
+sudo webinoly -config-list | grep db-engine
+```
+
+## Installation Process
+
+Webinoly automatically handles the complete setup:
+
+<Steps>
+  <Step title="Package Installation">
+    - Adds official repository
+    - Installs database server packages
+    - Configures systemd service
+  </Step>
+  
+  <Step title="Security Configuration">
+    Runs `mysql_secure_installation` equivalent:
+    - Generates strong root password
+    - Removes anonymous users
+    - Disables remote root access
+    - Drops test database
+    - Reloads privilege tables
+  </Step>
+  
+  <Step title="User Creation">
+    Creates admin user with privileges:
+    - Generates secure admin password
+    - Grants full database access
+    - Enables WITH GRANT OPTION
+  </Step>
+  
+  <Step title="Optimization">
+    Applies performance optimizations:
+    - Configures buffer pools
+    - Sets connection limits
+    - Optimizes query cache
+  </Step>
+</Steps>
+
+<Warning>
+**Password Security**: Database passwords are automatically generated and encrypted. They are NO longer displayed in the terminal for security reasons.
+</Warning>
+
+## Accessing Database Credentials
+
+Webinoly stores database credentials securely:
+
+<Steps>
+  <Step title="View Configuration">
+    ```bash
+    sudo webinoly -dbdata
+    ```
+    
+    This displays:
+    - Database root password
+    - Admin user password
+    - Connection details
+  </Step>
+  
+  <Step title="Stored Location">
+    Credentials are encrypted in:
+    ```bash
+    /opt/webinoly/webinoly.conf
+    ```
+  </Step>
+  
+  <Step title="Login Configuration">
+    Automatic login configured at:
+    ```bash
+    /etc/mysql/mariadb.conf.d/90-webinoly-login.cnf
+    # or for MySQL:
+    /etc/mysql/mysql.conf.d/xx-webinoly-login.cnf
+    ```
+  </Step>
+</Steps>
+
+## Database Configuration
+
+### Configuration Files Structure
+
+<Tabs>
+  <Tab title="MariaDB">
+    ```bash
+    /etc/mysql/
+    ├── my.cnf                          # Main configuration
+    ├── mariadb.conf.d/
+    │   ├── 50-server.cnf             # Server settings
+    │   ├── 90-webinoly.cnf           # Webinoly optimizations
+    │   └── 90-webinoly-login.cnf     # Login credentials
+    └── conf.d/                       # Additional configs
+    ```
+  </Tab>
+  
+  <Tab title="MySQL">
+    ```bash
+    /etc/mysql/
+    ├── my.cnf                          # Main configuration
+    ├── mysql.conf.d/
+    │   ├── mysqld.cnf                # Server settings
+    │   ├── xx-webinoly.cnf           # Webinoly optimizations
+    │   └── xx-webinoly-login.cnf     # Login credentials
+    └── conf.d/                       # Additional configs
+    ```
+  </Tab>
+</Tabs>
+
+### Webinoly Optimizations
+
+Webinoly applies several database optimizations:
+
+```ini
+[mysqld]
+# Connection Settings
+max_connections = 100
+connect_timeout = 10
+wait_timeout = 600
+
+# Buffer Pool (automatically sized)
+innodb_buffer_pool_size = XXM
+
+# Query Cache
+query_cache_type = 1
+query_cache_limit = 2M
+query_cache_size = 64M
+
+# Log Settings
+log_error = /var/log/mysql/error.log
+slow_query_log = 0
+```
+
+## Managing Database Server
+
+### Service Control
+
+<CodeGroup>
+```bash Start Database
+sudo systemctl start mysql
+```
+
+```bash Stop Database
+sudo systemctl stop mysql
+```
+
+```bash Restart Database
+sudo systemctl restart mysql
+```
+
+```bash Check Status
+sudo systemctl status mysql
+```
+</CodeGroup>
+
+### Database Access
+
+<Tabs>
+  <Tab title="Admin User">
+    ```bash
+    # Access as admin
+    mysql --user=admin
+    
+    # or with MariaDB
+    mariadb --user=admin
+    ```
+  </Tab>
+  
+  <Tab title="Root User">
+    ```bash
+    # Access as root
+    sudo mysql --user=root
+    ```
+  </Tab>
+  
+  <Tab title="External Connection">
+    ```bash
+    mysql -h hostname -P port -u username -p
+    ```
+  </Tab>
+</Tabs>
+
+## User Management
+
+### Create Database and User
+
+```sql
+-- Create database
+CREATE DATABASE myapp_db;
+
+-- Create user
+CREATE USER 'myapp_user'@'localhost' IDENTIFIED BY 'secure_password';
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON myapp_db.* TO 'myapp_user'@'localhost';
+
+-- Flush privileges
+FLUSH PRIVILEGES;
+```
+
+### Remove User and Database
+
+```sql
+-- Drop user
+DROP USER 'myapp_user'@'localhost';
+
+-- Drop database
+DROP DATABASE myapp_db;
+```
+
+### View Users
+
+```sql
+-- List all users
+SELECT User, Host FROM mysql.user;
+
+-- View user privileges
+SHOW GRANTS FOR 'username'@'localhost';
+```
+
+## External Database Access
+
+### Enable Public Access
+
+<Warning>
+Only enable public access if absolutely necessary and use strong security measures.
+</Warning>
+
+```bash
+# Enable public access
+sudo webinoly -mysql-public-access=on
+
+# Enable with specific bind address
+sudo webinoly -mysql-public-access=on -bind=0.0.0.0
+
+# Disable public access
+sudo webinoly -mysql-public-access=off
+```
+
+### Configure Firewall
+
+```bash
+# Allow MySQL port (3306)
+sudo ufw allow 3306/tcp
+
+# Or allow from specific IP
+sudo ufw allow from 203.0.113.0 to any port 3306
+```
+
+### Create Remote User
+
+```sql
+-- Allow user from specific host
+CREATE USER 'remote_user'@'203.0.113.0' IDENTIFIED BY 'password';
+GRANT ALL PRIVILEGES ON database.* TO 'remote_user'@'203.0.113.0';
+
+-- Allow from any host (not recommended)
+CREATE USER 'remote_user'@'%' IDENTIFIED BY 'password';
+GRANT ALL PRIVILEGES ON database.* TO 'remote_user'@'%';
+
+FLUSH PRIVILEGES;
+```
+
+## Version Management
+
+### Switch Database Version
+
+Webinoly allows version upgrades:
+
+<Steps>
+  <Step title="Check Current Version">
+    ```bash
+    mysql -V
+    # or
+    sudo stack -info
+    ```
+  </Step>
+  
+  <Step title="Upgrade Version">
+    ```bash
+    sudo stack -mysql-ver=11.8
+    ```
+    
+    This will:
+    - Back up with keep-data
+    - Remove old version
+    - Install new version
+    - Upgrade system tables
+  </Step>
+  
+  <Step title="Verify Upgrade">
+    ```bash
+    mysql -V
+    sudo systemctl status mysql
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+**Important Notes**:
+- Downgrades are NOT supported
+- Always backup data before upgrading
+- Switching between MySQL and MariaDB requires manual data migration
+- Version upgrades preserve your data
+</Warning>
+
+## Database Backup and Restore
+
+### Manual Backup
+
+<CodeGroup>
+```bash Single Database
+mysqldump --user=admin database_name > backup.sql
+```
+
+```bash All Databases
+mysqldump --user=admin --all-databases > all_databases.sql
+```
+
+```bash With Compression
+mysqldump --user=admin database_name | gzip > backup.sql.gz
+```
+</CodeGroup>
+
+### Restore Database
+
+<CodeGroup>
+```bash From SQL File
+mysql --user=admin database_name < backup.sql
+```
+
+```bash From Compressed File
+gunzip < backup.sql.gz | mysql --user=admin database_name
+```
+</CodeGroup>
+
+## Logging Configuration
+
+Webinoly provides log management:
+
+### Error Log
+
+Always enabled by default:
+
+```bash
+/var/log/mysql/error.log
+```
+
+### Binary Log
+
+Useful for replication and point-in-time recovery:
+
+<CodeGroup>
+```bash Enable Binary Log
+sudo log -mysql=binary -enable
+```
+
+```bash Disable Binary Log
+sudo log -mysql=binary -disable
+```
+</CodeGroup>
+
+### Slow Query Log
+
+Identify slow queries:
+
+<CodeGroup>
+```bash Enable Slow Query Log
+sudo log -mysql=slow -enable
+```
+
+```bash With Custom Threshold
+sudo log -mysql=slow -enable -long-query-time=2
+```
+
+```bash Disable Slow Query Log
+sudo log -mysql=slow -disable
+```
+</CodeGroup>
+
+### General Query Log
+
+Log all queries (use with caution):
+
+<CodeGroup>
+```bash Enable General Log
+sudo log -mysql=general -enable
+```
+
+```bash Disable General Log
+sudo log -mysql=general -disable
+```
+</CodeGroup>
+
+<Warning>
+General query log can significantly impact performance and consume disk space. Only enable for debugging.
+</Warning>
+
+## phpMyAdmin Integration
+
+Webinoly can install phpMyAdmin for web-based management:
+
+```bash
+# Install phpMyAdmin
+sudo stack -pma
+
+# Access at
+http://your-server-ip:22222/pma
+```
+
+<Info>
+phpMyAdmin is automatically configured to work with your database and is protected by HTTP authentication.
+</Info>
+
+## Performance Optimization
+
+### Buffer Pool Size
+
+Automatic optimization based on RAM:
+
+```bash
+# Webinoly calculates optimal size
+# Generally 50-70% of available RAM for dedicated database servers
+# 25-40% for shared servers
+```
+
+### Connection Optimization
+
+```ini
+[mysqld]
+max_connections = 100
+max_connect_errors = 1000000
+thread_cache_size = 8
+```
+
+### Query Cache
+
+```ini
+[mysqld]
+query_cache_type = 1
+query_cache_size = 64M
+query_cache_limit = 2M
+```
+
+<Info>
+Note: Query cache is deprecated in MySQL 8.0+ and removed in MariaDB 10.10+
+</Info>
+
+## Removing Database
+
+### Complete Removal
+
+```bash
+sudo stack -mysql -purge
+```
+
+### Keep Data
+
+Remove server but preserve databases:
+
+```bash
+sudo stack -mysql=keep-data -purge
+```
+
+<Warning>
+Removing the database will:
+- Delete all databases and users (unless keep-data is used)
+- Remove phpMyAdmin if installed
+- Delete all configurations
+- This action cannot be undone without backups
+</Warning>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Cannot connect to database">
+    Check service status and socket:
+    ```bash
+    sudo systemctl status mysql
+    ls -la /run/mysqld/mysqld.sock
+    sudo tail -f /var/log/mysql/error.log
+    ```
+  </Accordion>
+  
+  <Accordion title="Too many connections error">
+    Increase max_connections:
+    ```bash
+    sudo nano /etc/mysql/mariadb.conf.d/90-webinoly.cnf
+    # Increase max_connections value
+    sudo systemctl restart mysql
+    ```
+  </Accordion>
+  
+  <Accordion title="Slow query performance">
+    Enable and check slow query log:
+    ```bash
+    sudo log -mysql=slow -enable -long-query-time=1
+    sudo tail -f /var/log/mysql/slow.log
+    ```
+  </Accordion>
+  
+  <Accordion title="Version upgrade failed">
+    Check for sufficient disk space and try:
+    ```bash
+    sudo stack -mysql=keep-data -purge
+    sudo webinoly -config-set=mysql-ver:11.8
+    sudo stack -mysql
+    ```
+  </Accordion>
+  
+  <Accordion title="Engine mismatch error">
+    Webinoly detects incompatible data:
+    ```
+    ERROR: You have MySQL set as database engine, 
+    but we found you have MariaDB data in your server.
+    ```
+    
+    Solution: Use the same engine as your existing data or migrate data properly.
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Regular Backups" icon="floppy-disk">
+    Schedule automated database backups using Webinoly's backup tools
+  </Card>
+  <Card title="Secure Access" icon="lock">
+    Use strong passwords and limit remote access to specific IPs only
+  </Card>
+  <Card title="Monitor Performance" icon="chart-line">
+    Enable slow query log to identify performance bottlenecks
+  </Card>
+  <Card title="Keep Updated" icon="arrow-up">
+    Regularly update to latest stable version for security patches
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Install phpMyAdmin" icon="database" href="/stack/additional-tools">
+    Web-based database management interface
+  </Card>
+  <Card title="Create WordPress Site" icon="wordpress" href="/sites/wordpress">
+    Deploy WordPress with automatic database setup
+  </Card>
+  <Card title="Database Backups" icon="clock-rotate-left" href="/backups/database-backups">
+    Configure automated database backups
+  </Card>
+  <Card title="External Database" icon="network-wired" href="/advanced/external-database">
+    Connect to external database servers
+  </Card>
+</CardGroup>

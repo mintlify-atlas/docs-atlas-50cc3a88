@@ -1,0 +1,525 @@
+---
+title: "Changelog & Version History"
+description: "Track Webinoly releases, updates, and version history"
+---
+
+## Current Version
+
+<Note>
+  **Latest Version**: 1.20.0 (Application Version)
+  
+  **Server Version**: 1.12
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="View All Releases" icon="github" href="https://github.com/QROkes/webinoly/releases">
+    Complete changelog on GitHub
+  </Card>
+  <Card title="Download Latest" icon="download" href="https://github.com/QROkes/webinoly/releases/latest">
+    Get the latest version
+  </Card>
+</CardGroup>
+
+---
+
+## Supported Versions
+
+### Webinoly Version Information
+
+Webinoly uses two version numbers:
+
+<AccordionGroup>
+  <Accordion title="Application Version (1.20.0)">
+    The main Webinoly application version that tracks:
+    - Feature additions
+    - Bug fixes
+    - Command improvements
+    - Script updates
+    
+    Check your version:
+    ```bash
+    sudo webinoly -version
+    ```
+  </Accordion>
+  
+  <Accordion title="Server Version (1.12)">
+    The server configuration version that tracks:
+    - NGINX configuration changes
+    - Stack component updates
+    - System-level modifications
+    - Security patches
+    
+    View server info:
+    ```bash
+    sudo webinoly -info
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Component Versions
+
+<Tabs>
+  <Tab title="PHP">
+    **Supported PHP Versions:**
+    - PHP 7.4
+    - PHP 8.0
+    - PHP 8.1
+    - PHP 8.2
+    - PHP 8.3
+    - **PHP 8.4** (default)
+    - PHP 8.5
+    
+    See [PHP official documentation](https://www.php.net/supported-versions.php) for version lifecycle.
+  </Tab>
+  
+  <Tab title="MariaDB">
+    **Supported MariaDB Versions:**
+    - MariaDB 10.11
+    - MariaDB 11.4
+    - **MariaDB 11.8** (default)
+    
+    See [MariaDB release notes](https://mariadb.com/docs/release-notes/community-server) for details.
+  </Tab>
+  
+  <Tab title="MySQL">
+    **Supported MySQL Versions:**
+    - MySQL 8.0
+    - **MySQL 8.4** (default)
+    
+    See [MySQL release information](https://endoflife.date/mysql) for lifecycle.
+  </Tab>
+  
+  <Tab title="Additional Tools">
+    **Other Components:**
+    - **Duplicity**: 2.1.4 (backup tool)
+    - **NGINX**: Latest stable from official repos
+    - **Redis**: Latest stable
+    - **Let's Encrypt**: Latest Certbot
+  </Tab>
+</Tabs>
+
+---
+
+## Updating Webinoly
+
+### Check for Updates
+
+```bash
+# Check current version
+sudo webinoly -version
+
+# View full system info
+sudo webinoly -info
+```
+
+### Update to Latest Version
+
+```bash
+# Update Webinoly
+sudo webinoly -update
+
+# The update process:
+# 1. Downloads latest version
+# 2. Backs up current configuration
+# 3. Installs new version
+# 4. Preserves all your sites and settings
+```
+
+<Warning>
+  Always backup your sites before major updates:
+  ```bash
+  sudo backup -all
+  ```
+</Warning>
+
+### Beta Releases
+
+Test upcoming features:
+
+```bash
+# Switch to beta channel
+sudo webinoly -update -beta
+
+# Switch back to stable
+sudo webinoly -update
+```
+
+---
+
+## Release Channels
+
+<CardGroup cols={2}>
+  <Card title="Stable" icon="check-circle">
+    **Recommended for production**
+    
+    - Thoroughly tested
+    - Production-ready
+    - Regular security updates
+    - Long-term support
+  </Card>
+  
+  <Card title="Beta" icon="flask">
+    **For testing and feedback**
+    
+    - Early access to features
+    - Help test new functionality
+    - Report bugs before stable release
+    - Not recommended for production
+  </Card>
+</CardGroup>
+
+---
+
+## Version History Overview
+
+### Recent Major Releases
+
+<AccordionGroup>
+  <Accordion title="Version 1.20.x">
+    **Current Stable Release**
+    
+    Key features and improvements:
+    - Enhanced stability and performance
+    - Updated component support
+    - Security enhancements
+    - Bug fixes and optimizations
+    
+    [View detailed release notes](https://github.com/QROkes/webinoly/releases/tag/v1.20.0)
+  </Accordion>
+  
+  <Accordion title="Version 1.1x Series">
+    **Previous Stable Versions**
+    
+    Major milestones:
+    - PHP 8.x support improvements
+    - Enhanced WordPress management
+    - Performance optimizations
+    - Security updates
+    
+    [Browse all releases](https://github.com/QROkes/webinoly/releases)
+  </Accordion>
+  
+  <Accordion title="Version 1.0x Series">
+    **Legacy Versions**
+    
+    Foundation releases:
+    - Core functionality established
+    - Basic LEMP stack management
+    - Initial WordPress support
+    - SSL certificate automation
+    
+    <Note>
+      Users on 1.0x versions should upgrade to 1.20.x for latest features and security updates.
+    </Note>
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## What's New in 1.20.0
+
+<Tabs>
+  <Tab title="Features">
+    **New Capabilities:**
+    
+    - Updated PHP version support (8.4 as default)
+    - Improved MariaDB/MySQL version management
+    - Enhanced backup and restore functionality
+    - Better error handling and messages
+    - Performance optimizations
+  </Tab>
+  
+  <Tab title="Improvements">
+    **Enhancements:**
+    
+    - More reliable SSL certificate management
+    - Faster site creation and deployment
+    - Improved cache management
+    - Better WordPress multisite support
+    - Enhanced security configurations
+  </Tab>
+  
+  <Tab title="Bug Fixes">
+    **Resolved Issues:**
+    
+    - Fixed edge cases in site creation
+    - Resolved SSL renewal issues
+    - Corrected permission problems
+    - Fixed database connection handling
+    - Improved error recovery
+  </Tab>
+  
+  <Tab title="Security">
+    **Security Updates:**
+    
+    - Updated dependencies
+    - Enhanced SSL/TLS configurations
+    - Improved authentication mechanisms
+    - Security header updates
+    - Vulnerability patches
+  </Tab>
+</Tabs>
+
+---
+
+## Upgrade Path
+
+### From Older Versions
+
+<Steps>
+  <Step title="Backup Everything">
+    ```bash
+    # Create full backup before upgrading
+    sudo backup -all
+    ```
+  </Step>
+  
+  <Step title="Check Compatibility">
+    ```bash
+    # Review current installation
+    sudo webinoly -info
+    
+    # Check site status
+    sudo site -list
+    ```
+  </Step>
+  
+  <Step title="Update Webinoly">
+    ```bash
+    # Perform update
+    sudo webinoly -update
+    
+    # Verify new version
+    sudo webinoly -version
+    ```
+  </Step>
+  
+  <Step title="Test Your Sites">
+    ```bash
+    # Verify all sites work
+    curl -I https://example.com
+    
+    # Check logs
+    sudo log example.com
+    ```
+  </Step>
+</Steps>
+
+### Breaking Changes
+
+<Warning>
+  Check the [release notes](https://github.com/QROkes/webinoly/releases) for any breaking changes before upgrading major versions.
+</Warning>
+
+**Common upgrade considerations:**
+
+- PHP version compatibility
+- Database engine changes
+- Configuration file formats
+- Command syntax changes
+- Deprecated features
+
+---
+
+## Deprecation Notice
+
+### End of Life Components
+
+<AccordionGroup>
+  <Accordion title="Operating Systems">
+    **Ubuntu Version Support:**
+    
+    ✅ Supported:
+    - Ubuntu 24.04 (Noble)
+    - Ubuntu 22.04 (Jammy)
+    
+    ❌ No Longer Supported:
+    - Ubuntu 20.04 (Focal)
+    - Ubuntu 18.04 (Bionic)
+    - Older versions
+    
+    See [Ubuntu release cycle](https://ubuntu.com/about/release-cycle) for details.
+  </Accordion>
+  
+  <Accordion title="PHP Versions">
+    **PHP Support Status:**
+    
+    ⚠️ Security Support Only:
+    - PHP 7.4 (consider upgrading)
+    - PHP 8.0 (consider upgrading)
+    
+    ✅ Active Support:
+    - PHP 8.1 and newer
+    
+    Check [PHP supported versions](https://www.php.net/supported-versions.php).
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Release Schedule
+
+### Update Frequency
+
+**Regular Updates:**
+- **Patch releases**: As needed for critical fixes
+- **Minor releases**: Every few months for features
+- **Major releases**: Annually for significant changes
+
+**Security Updates:**
+- Released immediately for critical vulnerabilities
+- Follow responsible disclosure practices
+- Announced via GitHub and social media
+
+### Stay Informed
+
+<CardGroup cols={2}>
+  <Card title="GitHub Releases" icon="github" href="https://github.com/QROkes/webinoly/releases">
+    Subscribe to release notifications
+  </Card>
+  <Card title="Newsletter" icon="envelope" href="https://webinoly.com/newsletter/">
+    Get updates via email
+  </Card>
+  <Card title="Twitter/X" icon="x-twitter" href="https://x.com/Webinoly">
+    Follow for announcements
+  </Card>
+  <Card title="Mastodon" icon="mastodon" href="https://fosstodon.org/@webinoly">
+    Alternative social channel
+  </Card>
+</CardGroup>
+
+---
+
+## Migration Guides
+
+For version-specific migration instructions:
+
+<Card title="Migration Guide" icon="arrow-right" href="/resources/migration-guide">
+  Comprehensive migration guide for all scenarios
+</Card>
+
+---
+
+## Rollback Procedure
+
+If you encounter issues after updating:
+
+<Steps>
+  <Step title="Stop Services">
+    ```bash
+    sudo service nginx stop
+    sudo service php*-fpm stop
+    ```
+  </Step>
+  
+  <Step title="Restore Backup">
+    ```bash
+    # If you created a backup before updating
+    sudo restore -all
+    ```
+  </Step>
+  
+  <Step title="Report Issue">
+    [Create an issue](https://github.com/QROkes/webinoly/issues) with:
+    - Version numbers (old and new)
+    - Error messages
+    - Steps to reproduce
+    - System information
+  </Step>
+</Steps>
+
+---
+
+## Version Support Policy
+
+### Supported Versions
+
+| Version | Status | Support Until | Security Updates |
+|---------|--------|---------------|------------------|
+| 1.20.x  | ✅ Stable | Current | Yes |
+| 1.1x.x  | ⚠️ Maintenance | 6 months | Yes |
+| 1.0x.x  | ❌ End of Life | Ended | No |
+
+### Support Levels
+
+<Tabs>
+  <Tab title="Active Support">
+    **Current Stable Version**
+    
+    Includes:
+    - New features
+    - Bug fixes
+    - Security patches
+    - Performance improvements
+    - Community support
+    - Documentation updates
+  </Tab>
+  
+  <Tab title="Maintenance">
+    **Previous Stable Version**
+    
+    Includes:
+    - Critical bug fixes
+    - Security patches
+    - Limited support
+    
+    Recommended to upgrade to current version.
+  </Tab>
+  
+  <Tab title="End of Life">
+    **Unsupported Versions**
+    
+    - No updates
+    - No security patches
+    - No support
+    
+    **Must upgrade immediately** for security.
+  </Tab>
+</Tabs>
+
+---
+
+## Development Roadmap
+
+### Upcoming Features
+
+Future development priorities (subject to change):
+
+- Enhanced container support
+- Improved monitoring tools
+- Advanced caching options
+- Better automation capabilities
+- Extended platform support
+
+<Note>
+  Follow the [GitHub repository](https://github.com/QROkes/webinoly) for the latest roadmap updates and feature discussions.
+</Note>
+
+---
+
+## Contributing to Development
+
+Help shape the future of Webinoly:
+
+<CardGroup cols={2}>
+  <Card title="Report Bugs" icon="bug" href="https://github.com/QROkes/webinoly/issues">
+    Help identify issues
+  </Card>
+  <Card title="Suggest Features" icon="lightbulb" href="https://github.com/QROkes/webinoly/discussions">
+    Share your ideas
+  </Card>
+  <Card title="Contribute Code" icon="code" href="/resources/contributing">
+    Submit pull requests
+  </Card>
+  <Card title="Test Betas" icon="flask" href="#beta-releases">
+    Help test new releases
+  </Card>
+</CardGroup>
+
+---
+
+## Questions?
+
+<Card title="View Full Changelog" icon="book-open" href="https://github.com/QROkes/webinoly/releases">
+  Access complete version history and detailed release notes on GitHub
+</Card>

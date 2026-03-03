@@ -1,80 +1,411 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick start
+description: Get your first website up and running with Webinoly in minutes.
 ---
 
-## Get started in three steps
+# Quick start
 
-Get your documentation site running locally and make your first customization.
+This guide will walk you through creating your first website with Webinoly, from installation to a working site.
 
-### Step 1: Set up your local environment
+## Before you begin
+
+Ensure you have:
+
+1. A fresh Ubuntu 24.04 or 22.04 server
+2. Root or sudo access
+3. At least 512MB RAM
+4. A domain name pointed to your server (optional but recommended)
+
+## Step 1: Install Webinoly
+
+Install the complete LEMP stack:
+
+```bash
+wget -qO weby qrok.es/wy && sudo bash weby
+```
+
+This command:
+- Downloads the Webinoly installer
+- Installs NGINX, PHP 8.4, and MariaDB 11.8
+- Configures optimized settings
+- Takes 5-15 minutes to complete
+
+<Info>
+  The installation script will show progress messages. Wait for the "Webinoly installed successfully" message.
+</Info>
+
+## Step 2: Create your first site
+
+Once installation is complete, you can create sites immediately.
+
+### Create a WordPress site
+
+The fastest way to get started:
+
+```bash
+sudo site example.com -wp
+```
+
+This single command:
+- Creates the site structure
+- Installs NGINX configuration
+- Downloads WordPress
+- Creates a database and user
+- Sets up FastCGI cache
+
+<Steps>
+  <Step title="Create the site">
+    Run the site creation command:
+    
+    ```bash
+    sudo site example.com -wp
+    ```
+    
+    Replace `example.com` with your actual domain name.
+  </Step>
+  
+  <Step title="Note the credentials">
+    Webinoly will display the database credentials:
+    
+    ```
+    Database: example_com
+    Username: example_com_user
+    Password: [random_password]
+    ```
+    
+    Save these credentials - you'll need them for WordPress setup.
+  </Step>
+  
+  <Step title="Complete WordPress installation">
+    Visit your domain in a browser:
+    
+    ```
+    http://example.com
+    ```
+    
+    Complete the WordPress installation wizard using the database credentials from step 2.
+  </Step>
+  
+  <Step title="Add SSL certificate">
+    Once WordPress is installed, add a free SSL certificate:
+    
+    ```bash
+    sudo site example.com -ssl=on
+    ```
+    
+    Webinoly will automatically obtain a Let's Encrypt certificate and configure HTTPS.
+  </Step>
+</Steps>
+
+<Note>
+  The first SSL certificate request may take a minute or two while Let's Encrypt verifies domain ownership.
+</Note>
+
+### Create a PHP site
+
+For a custom PHP application:
+
+```bash
+sudo site myapp.com -php
+```
+
+This creates:
+- Site directory: `/var/www/myapp.com/htdocs/`
+- PHP 8.4 support
+- Basic NGINX configuration
+
+Upload your PHP files to `/var/www/myapp.com/htdocs/`.
+
+### Create an HTML site
+
+For static HTML sites:
+
+```bash
+sudo site static.com -html
+```
+
+Upload your HTML files to `/var/www/static.com/htdocs/`.
+
+## Step 3: Manage your site
+
+Webinoly provides powerful commands for site management.
+
+### View site information
+
+```bash
+sudo site example.com -info
+```
+
+Displays:
+- Site type (WordPress, PHP, HTML)
+- SSL status
+- Cache status
+- PHP version
+- Database details
+
+### Enable caching
+
+For WordPress sites, enable FastCGI cache:
+
+```bash
+sudo site example.com -cache=on
+```
+
+<Info>
+  FastCGI cache can dramatically improve site performance by serving cached pages from NGINX.
+</Info>
+
+### Clear cache
+
+When you update your site:
+
+```bash
+sudo webinoly -clear-cache -domain=example.com
+```
+
+## Common tasks
 
 <AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+  <Accordion title="Create multiple sites">
+    You can host multiple sites on one server:
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
+    ```bash
+    sudo site site1.com -wp
+    sudo site site2.com -php
+    sudo site site3.com -html
+    ```
+    
+    Each site is completely isolated with its own directory and configuration.
   </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
+  
+  <Accordion title="Add HTTP authentication">
+    Protect your site with username/password:
     
-    <Tip>Your preview updates automatically as you edit files.</Tip>
+    ```bash
+    sudo httpauth example.com -add
+    ```
+    
+    You'll be prompted to create a username and password.
+  </Accordion>
+  
+  <Accordion title="View database password">
+    Retrieve database credentials:
+    
+    ```bash
+    sudo webinoly -dbpass
+    ```
+    
+    Shows all database passwords including the root password.
+  </Accordion>
+  
+  <Accordion title="Delete a site">
+    Remove a site completely:
+    
+    ```bash
+    sudo site example.com -delete
+    ```
+    
+    Add `-force-delete` to skip confirmation prompts.
   </Accordion>
 </AccordionGroup>
 
-### Step 2: Deploy your changes
+## Working with databases
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+Webinoly automatically creates databases for WordPress sites. For other sites:
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+### Create a database
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+WordPress sites get databases automatically, but you can create additional ones:
 
-### Step 3: Go live
+```bash
+# Database is created with: sudo site example.com -wp
+# Manual database creation via MySQL:
+sudo mysql -u root
+```
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+### View database credentials
+
+```bash
+sudo webinoly -dbpass
+```
+
+Output shows:
+```
+Root password: [password]
+Admin password: [password]
+```
+
+<Warning>
+  Keep database credentials secure. The root password provides full database access.
+</Warning>
+
+## SSL certificates
+
+Webinoly uses Let's Encrypt for free SSL certificates.
+
+### Add SSL to a site
+
+```bash
+sudo site example.com -ssl=on
+```
+
+### Wildcard certificates
+
+For `*.example.com`:
+
+```bash
+sudo site example.com -ssl=on -wildcard
+```
+
+<Note>
+  Wildcard certificates require DNS validation. You'll need to add a TXT record to your domain's DNS.
+</Note>
+
+### Force HTTPS redirect
+
+```bash
+sudo site example.com -force-redirect=www
+# or
+sudo site example.com -force-redirect=root
+```
+
+Options:
+- `www` - Redirect example.com to www.example.com
+- `root` - Redirect www.example.com to example.com
+
+## Server management
+
+### Check server status
+
+```bash
+sudo webinoly -info
+```
+
+Shows:
+- Webinoly version
+- NGINX version
+- PHP version
+- Database engine and version
+- Memory usage
+- Disk usage
+
+### Update Webinoly
+
+```bash
+sudo webinoly -update
+```
+
+Keeps your server up to date with the latest features and security patches.
+
+### Verify installation
+
+```bash
+sudo webinoly -verify
+```
+
+Checks for configuration issues and provides recommendations.
+
+## File locations
+
+Knowing where files are stored helps with troubleshooting:
+
+| Location | Purpose |
+|----------|----------|
+| `/var/www/[domain]/htdocs/` | Website files |
+| `/var/www/[domain]/logs/` | Access and error logs |
+| `/etc/nginx/sites-available/[domain]` | NGINX configuration |
+| `/opt/webinoly/webinoly.conf` | Webinoly configuration |
+| `/etc/nginx/nginx.conf` | Main NGINX config |
+
+## Logs and debugging
+
+### View site logs
+
+Access logs:
+```bash
+sudo tail -f /var/www/example.com/logs/access.log
+```
+
+Error logs:
+```bash
+sudo tail -f /var/www/example.com/logs/error.log
+```
+
+### NGINX error log
+
+```bash
+sudo tail -f /var/log/nginx/error.log
+```
+
+### PHP error log
+
+```bash
+sudo tail -f /var/log/php/[version]/fpm.log
+```
+
+## Backup and restore
+
+Webinoly includes comprehensive backup tools.
+
+### Backup a site
+
+```bash
+sudo webinoly -backup -domain=example.com
+```
+
+Creates a backup in `/var/webinoly/backups/`.
+
+### Restore a site
+
+```bash
+sudo webinoly -backup -restore -domain=example.com
+```
+
+<Info>
+  Backups include website files, database, and NGINX configuration.
+</Info>
+
+## Advanced: Reverse proxy
+
+Webinoly can proxy requests to applications like Node.js or Python apps.
+
+```bash
+sudo site api.example.com -proxy=http://localhost:3000
+```
+
+This creates a reverse proxy that forwards requests to your application running on port 3000.
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
+Now that you have a working site, explore more features:
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Full documentation" icon="book" href="https://webinoly.com/documentation/">
+    Comprehensive command reference
+  </Card>
+  
+  <Card title="WordPress multisite" icon="globe" href="https://webinoly.com/documentation/">
+    Set up WordPress networks
+  </Card>
+  
+  <Card title="Performance tuning" icon="gauge-high" href="https://webinoly.com/documentation/">
+    Optimize for maximum speed
+  </Card>
+  
+  <Card title="Security hardening" icon="shield" href="https://webinoly.com/documentation/">
+    Advanced security configurations
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+## Getting help
+
+If you encounter issues:
+
+1. Run `sudo webinoly -verify` to check for problems
+2. Check the [documentation](https://webinoly.com/documentation/)
+3. Visit the [community forums](https://webinoly.com/premium/)
+4. Review server logs for error messages
+
+<Tip>
+  Most common issues can be resolved by verifying firewall settings and DNS configuration.
+</Tip>

@@ -1,0 +1,283 @@
+---
+title: Creating Sites
+description: Learn how to create different types of sites with Webinoly - HTML, PHP, WordPress, and MySQL sites
+---
+
+Webinoly makes it easy to create and configure different types of sites on your NGINX server. You can create HTML sites, PHP sites, WordPress sites with database setup, or standalone MySQL databases.
+
+## Site Types
+
+Webinoly supports several site types:
+
+- **HTML** - Static HTML sites
+- **PHP** - PHP-enabled sites
+- **WordPress** - Full WordPress installation with automatic database setup
+- **MySQL** - Database-only (no site files)
+- **Empty** - Minimal configuration for custom setups
+- **Reverse Proxy** - Proxy to backend applications
+- **Parked** - Parked/alias domains
+
+## Creating an HTML Site
+
+Create a static HTML site:
+
+```bash
+sudo site example.com -html
+```
+
+HTML sites are configured with:
+- Static file serving
+- `index.html`, `index.htm` as default indexes
+- Basic security headers
+- Access and error logging
+
+### HTML in a Subfolder
+
+You can create HTML sites in subfolders:
+
+```bash
+sudo site example.com -html -subfolder=/blog
+```
+
+Files will be served from `/var/www/example.com/htdocs/blog/`.
+
+## Creating a PHP Site
+
+Create a PHP-enabled site:
+
+```bash
+sudo site example.com -php
+```
+
+<Tabs>
+  <Tab title="Default Configuration">
+    PHP sites include:
+    - PHP-FPM processing
+    - FastCGI configuration
+    - `index.php`, `index.html`, `index.htm` as default indexes
+    - Security headers
+    - Common PHP security restrictions
+  </Tab>
+  <Tab title="With Subfolder">
+    Create a PHP site in a subfolder:
+    
+    ```bash
+    sudo site example.com -php -subfolder=/app
+    ```
+    
+    This creates a separate PHP configuration for the subfolder while keeping the main site intact.
+  </Tab>
+</Tabs>
+
+## Creating a WordPress Site
+
+<Steps>
+  <Step title="Basic WordPress Installation">
+    Create a WordPress site with automatic setup:
+    
+    ```bash
+    sudo site example.com -wp
+    ```
+    
+    This will:
+    - Download the latest WordPress version
+    - Create a new MySQL database
+    - Generate a `wp-config.php` file
+    - Set up secure database credentials
+    - Configure NGINX for WordPress
+  </Step>
+  
+  <Step title="Interactive Setup">
+    During installation, you'll be prompted for:
+    
+    - **Database Host** (default: `localhost`)
+    - **Database Name** (default: sanitized domain name)
+    - **Database User** (default: sanitized domain name)
+    - **Database Password** (auto-generated or custom)
+    - **Table Prefix** (default: `wp_`)
+  </Step>
+  
+  <Step title="Verify Installation">
+    After creation, visit your domain to complete the WordPress installation through the web interface.
+    
+    Default file location: `/var/www/example.com/htdocs/`
+  </Step>
+</Steps>
+
+### WordPress in a Subfolder
+
+Install WordPress in a subfolder:
+
+```bash
+sudo site example.com -wp -subfolder=/blog
+```
+
+WordPress will be installed at `/var/www/example.com/htdocs/blog/` and accessible at `example.com/blog`.
+
+## Unattended WordPress Installation
+
+For automated deployments, use custom database parameters:
+
+```bash
+sudo site example.com -wp=[setupmysql,setupwp,dbhost,dbname,dbuser,dbpass,dbpref]
+```
+
+<CodeGroup>
+```bash With Auto-Generated Password
+sudo site example.com -wp=[true,true,localhost,mydb,myuser,random,wp_]
+```
+
+```bash With Custom Password
+sudo site example.com -wp=[true,true,localhost,mydb,myuser,SecurePass123,wp_]
+```
+
+```bash Skip Database Setup
+sudo site example.com -wp=[false,true,localhost,existing_db,existing_user,password,wp_]
+```
+</CodeGroup>
+
+### Parameters Explained
+
+- `setupmysql` - Create database and user (`true`/`false`)
+- `setupwp` - Create wp-config.php (`true`/`false`)
+- `dbhost` - Database host (e.g., `localhost`, `192.168.1.100:3306`)
+- `dbname` - Database name
+- `dbuser` - Database username
+- `dbpass` - Database password (use `random` for auto-generation)
+- `dbpref` - WordPress table prefix (e.g., `wp_`)
+
+## External Database Configuration
+
+Webinoly supports external MySQL/MariaDB databases:
+
+```bash
+sudo site example.com -wp=[true,true,db.example.com:3306,wpdb,wpuser,password,wp_,root,rootpass]
+```
+
+External database parameters:
+- `extdbuser` - Master database username (8th parameter)
+- `extdbpass` - Master database password (9th parameter)
+
+<Warning>
+  When using external databases:
+  - Port 3306 must be accessible from your server
+  - Master credentials are needed to create databases and users
+  - Some cloud database services (like AWS RDS) may not support all privilege grants
+</Warning>
+
+## Creating a MySQL Database Only
+
+Create a database without installing WordPress:
+
+```bash
+sudo site example.com -mysql
+```
+
+Or create a standalone database:
+
+```bash
+sudo site -mysql
+```
+
+This creates:
+- A new database
+- A database user with appropriate privileges
+- Secure auto-generated credentials (displayed after creation)
+
+## Creating an Empty Site
+
+For custom configurations:
+
+```bash
+sudo site example.com -empty
+```
+
+This creates a minimal NGINX configuration where you can add your own rules in:
+- `/var/www/example.com/*-nginx.conf`
+
+### Completely Blank Configuration
+
+For maximum flexibility:
+
+```bash
+sudo site example.com -empty=blank
+```
+
+This removes all default includes, giving you complete control over the NGINX configuration.
+
+## Site Creation Options
+
+### Enable FastCGI Cache on Creation
+
+Create a WordPress site with caching enabled:
+
+```bash
+sudo site example.com -wp -cache=on
+```
+
+This automatically:
+- Enables FastCGI cache
+- Installs Nginx Helper plugin
+- Installs Redis Object Cache plugin
+
+### Set Environment Type
+
+Specify the WordPress environment type:
+
+```bash
+sudo site example.com -wp -env=staging
+```
+
+Valid environment types:
+- `production`
+- `staging`
+- `development`
+- `local`
+
+## File Locations
+
+After creating a site:
+
+| Location | Purpose |
+|----------|----------|
+| `/etc/nginx/sites-available/example.com` | NGINX configuration |
+| `/etc/nginx/sites-enabled/example.com` | Symlink (site is active) |
+| `/var/www/example.com/htdocs/` | Website files |
+| `/var/www/example.com/wp-config.php` | WordPress configuration (if WP) |
+| `/var/log/nginx/example.com.access.log` | Access logs |
+| `/var/log/nginx/example.com.error.log` | Error logs |
+
+## Automatic Features
+
+When creating sites, Webinoly automatically:
+
+- Sets proper file permissions (`www-data:www-data`)
+- Enables both www and non-www domains (for root domains)
+- Configures force redirect to non-www by default
+- Sets up logging
+- Includes security headers
+- Creates site directory structure
+
+<Warning>
+  - Domain names cannot contain scheme or path (use `example.com`, not `https://example.com/path`)
+  - IP addresses cannot be used as domain names (set as default site instead)
+  - Sites named `default` are reserved for system use
+  - Subdomains automatically receive single-domain configuration (www not added)
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="WordPress Features" icon="wordpress" href="/sites/wordpress-sites">
+    Configure WordPress-specific features like multisite, caching, and plugins
+  </Card>
+  <Card title="SSL Certificates" icon="lock" href="/sites/ssl-certificates">
+    Enable HTTPS with Let's Encrypt SSL certificates
+  </Card>
+  <Card title="Site Management" icon="gears" href="/sites/site-management">
+    Manage existing sites - enable/disable, delete, and configure
+  </Card>
+  <Card title="Reverse Proxy" icon="arrows-turn-right" href="/sites/reverse-proxy">
+    Set up reverse proxy for Node.js, Python, or other applications
+  </Card>
+</CardGroup>

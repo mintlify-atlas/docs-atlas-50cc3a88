@@ -1,0 +1,376 @@
+---
+title: "FastCGI cache"
+description: "High-performance server-side caching for WordPress and PHP applications"
+---
+
+Webinoly includes a powerful FastCGI caching system that dramatically improves website performance by storing rendered PHP output directly in memory.
+
+## How FastCGI cache works
+
+FastCGI cache sits between Nginx and PHP-FPM, storing the complete HTTP response for dynamic pages:
+
+<Steps>
+  <Step title="First request">
+    When a page is requested for the first time:
+    1. Nginx receives the request
+    2. Request is forwarded to PHP-FPM
+    3. PHP executes the code and generates output
+    4. Response is cached by Nginx and served to the user
+  </Step>
+  
+  <Step title="Subsequent requests">
+    For cached pages:
+    1. Nginx receives the request
+    2. Cache is checked for a valid response
+    3. Cached content is served directly (PHP is bypassed)
+    4. Response time reduced from ~500ms to ~5ms
+  </Step>
+</Steps>
+
+<Info>
+  FastCGI cache can reduce server load by up to 95% for high-traffic websites.
+</Info>
+
+## Cache configuration
+
+Webinoly stores the FastCGI cache in memory at `/run/nginx-cache/` for maximum performance.
+
+### Global settings
+
+Cache parameters are defined in `/etc/nginx/conf.d/fastcgi.conf`:
+
+```nginx
+fastcgi_cache_path /run/nginx-cache levels=1:2 
+    keys_zone=WORDPRESS:50m 
+    max_size=100m 
+    inactive=7d;
+
+fastcgi_cache_key "$scheme$request_method$host$request_uri";
+fastcgi_cache_use_stale error timeout invalid_header updating http_500 http_503;
+fastcgi_cache_valid 200 30d;
+fastcgi_cache_valid 301 302 303 307 308 404 410 451 1m;
+fastcgi_cache_background_update on;
+fastcgi_cache_lock on;
+```
+
+**Configuration breakdown**:
+
+- **levels=1:2**: Two-level directory hierarchy for efficient file storage
+- **keys_zone=WORDPRESS:50m**: 50MB memory for storing cache keys (metadata)
+- **max_size=100m**: Maximum cache storage (90% of `/run` folder size by default)
+- **inactive=7d**: Cached items are removed after 7 days without access
+- **fastcgi_cache_valid**: Cache duration by HTTP status code
+  - `200` (success): 30 days
+  - Redirects: 1 minute
+  - Errors: 1 minute
+
+<Note>
+  The cache size is automatically calculated based on your server's RAM. A server with 2GB RAM typically gets ~180MB cache space.
+</Note>
+
+### Cache validity customization
+
+Modify cache durations globally:
+
+```bash
+# Set custom cache validity times
+# Format: success,inactive,redirects
+sudo webinoly -cache-valid=15d,3d,30s
+```
+
+Or edit `/opt/webinoly/webinoly.conf`:
+
+```bash
+# Success responses (200), Inactive time, Redirects (3xx, 4xx)
+fastcgi-conf:15d,3d,30s
+```
+
+## WordPress cache
+
+Webinoly includes WordPress-specific cache rules that handle common scenarios:
+
+### Cache bypass rules
+
+Certain requests automatically bypass the cache:
+
+**Query strings**: URLs with query parameters
+```nginx
+if ($query_string != "") {
+    set $skip_cache 1;
+}
+```
+
+**Excluded URLs** (default):
+- `/wp-admin/*` - WordPress admin area
+- `/xmlrpc.php` - XML-RPC requests
+- `/wp-*.php` - WordPress PHP files
+- `/feed/` - RSS feeds
+- `*sitemap*.xml` - XML sitemaps
+- WooCommerce pages: `/cart/`, `/checkout/`, `/my-account/`
+
+**Excluded cookies** (default):
+- `comment_author` - Recent commenters
+- `wordpress_[hash]` - Logged-in users
+- `wordpress_logged_in` - WordPress authentication
+- `wp-postpass` - Password-protected posts
+- `wordpress_no_cache` - Manual cache bypass
+- `[items]_items_in_cart` - WooCommerce cart
+- `[cart]_cart_hash` - WooCommerce checkout
+
+### Enable cache for a site
+
+<Tabs>
+  <Tab title="New site">
+    Create a WordPress site with cache enabled:
+
+    ```bash
+    sudo site example.com -wp -cache
+    ```
+  </Tab>
+  
+  <Tab title="Existing site">
+    Enable cache for an existing WordPress site:
+
+    ```bash
+    sudo site example.com -cache=on
+    ```
+  </Tab>
+</Tabs>
+
+### Disable cache
+
+Temporarily disable cache:
+
+```bash
+sudo site example.com -cache=off
+```
+
+### Cache customization
+
+Customize WordPress cache rules per site:
+
+```bash
+# Allow/block query strings
+sudo site example.com -cache-query=all    # Cache all URLs (including query strings)
+sudo site example.com -cache-query=never  # Never cache URLs with query strings
+
+# Add custom excluded URLs
+sudo site example.com -cache-url=/custom-page/
+
+# Add custom excluded cookies
+sudo site example.com -cache-cookie=my_custom_cookie
+```
+
+## Cache management
+
+### Clear cache
+
+<Tabs>
+  <Tab title="Single site">
+    Clear cache for a specific domain:
+
+    ```bash
+    sudo site example.com -clear-cache
+    ```
+  </Tab>
+  
+  <Tab title="All sites">
+    Clear cache for all sites:
+
+    ```bash
+    sudo site -clear-cache=all
+    ```
+  </Tab>
+</Tabs>
+
+### Cache status
+
+Check if cache is enabled:
+
+```bash
+sudo site example.com -info
+```
+
+Look for `Cache: Enabled` in the output.
+
+### Test cache headers
+
+Verify cache is working:
+
+```bash
+# First request (cache MISS)
+curl -I https://example.com
+
+# Second request (cache HIT)
+curl -I https://example.com
+```
+
+Look for the `X-Cache-Status` header in Nginx logs:
+- `MISS` - Content not in cache
+- `HIT` - Content served from cache
+- `BYPASS` - Cache intentionally bypassed
+- `EXPIRED` - Cached content expired
+- `UPDATING` - Cache being refreshed in background
+
+## Advanced configuration
+
+### Global cache defaults
+
+Set global WordPress cache rules in `/opt/webinoly/webinoly.conf`:
+
+```bash
+# Query string behavior
+wpcache-query-strings:never  # or "all"
+
+# Excluded URLs
+wpcache-exclude-url:/wp-admin/|/xmlrpc.php|wp-.*.php|/feed/
+
+# Excluded cookies
+wpcache-exclude-cookie:wordpress_logged_in|comment_author
+```
+
+<Warning>
+  After modifying the configuration file, run `sudo webinoly -server-reset` to apply changes.
+</Warning>
+
+### Custom cache rules
+
+Create custom cache rules for specific needs:
+
+```nginx
+# Example: /etc/nginx/apps.d/global_custom_cache.conf
+
+# Don't cache POST requests
+if ($request_method = POST) {
+    set $skip_cache 1;
+}
+
+# Cache mobile and desktop separately
+set $mobile "";
+if ($http_user_agent ~* "(iPhone|Android|Mobile)") {
+    set $mobile "_mobile";
+}
+set $cache_key "$scheme$request_method$host$request_uri$mobile";
+```
+
+### Cache warmer
+
+Automatically pre-populate cache after clearing:
+
+```bash
+# Clear cache and warm up important pages
+sudo site example.com -clear-cache
+wget -r -l 2 --spider https://example.com
+```
+
+## Performance optimization
+
+### Background cache updates
+
+Webinoly enables `fastcgi_cache_background_update` to refresh stale cache entries in the background while serving the old cached version to users.
+
+### Cache locking
+
+The `fastcgi_cache_lock` directive ensures only one request populates the cache for a given page, preventing cache stampede:
+
+```nginx
+fastcgi_cache_lock on;
+fastcgi_cache_lock_timeout 5s;
+```
+
+### Stale content serving
+
+Serve stale cache if PHP-FPM is unavailable:
+
+```nginx
+fastcgi_cache_use_stale error timeout invalid_header updating http_500 http_503;
+```
+
+## Monitoring
+
+### Cache hit ratio
+
+Monitor cache effectiveness in Nginx access logs:
+
+```bash
+# View cache status in logs
+sudo tail -f /var/log/nginx/example.com.access.log
+
+# Count cache hits vs misses
+sudo log -nginx=example.com -cache
+```
+
+### Cache size
+
+Check current cache usage:
+
+```bash
+# View cache directory size
+du -sh /run/nginx-cache/
+
+# Count cached files
+find /run/nginx-cache/ -type f | wc -l
+```
+
+## Best practices
+
+<Note>
+  **Do's**:
+  - Enable cache for high-traffic WordPress sites
+  - Clear cache after theme/plugin updates
+  - Monitor cache hit ratio regularly
+  - Use cache for production sites, not development
+  - Test cache bypass rules for dynamic content
+</Note>
+
+<Warning>
+  **Don'ts**:
+  - Don't cache e-commerce checkout/cart pages (handled by default)
+  - Don't cache personalized content for logged-in users
+  - Don't cache pages with frequently changing data
+  - Don't forget to clear cache after major updates
+</Warning>
+
+## Troubleshooting
+
+### Cache not working
+
+1. Verify cache is enabled:
+   ```bash
+   sudo site example.com -info
+   ```
+
+2. Check Nginx configuration:
+   ```bash
+   sudo nginx -t
+   ```
+
+3. Ensure `/run/nginx-cache/` directory exists:
+   ```bash
+   ls -la /run/nginx-cache/
+   ```
+
+4. Check cache headers in response:
+   ```bash
+   curl -I https://example.com
+   ```
+
+### Stale content issues
+
+If users see outdated content:
+
+```bash
+# Clear cache immediately
+sudo site example.com -clear-cache
+
+# Reduce cache validity time
+sudo webinoly -cache-valid=1d,1d,30s
+```
+
+### High cache misses
+
+If cache hit ratio is low:
+- Review bypass rules (query strings, cookies)
+- Check if cache size is sufficient
+- Verify cache is not being cleared too frequently
+- Analyze URL patterns in access logs

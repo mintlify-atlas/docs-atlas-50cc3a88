@@ -1,0 +1,720 @@
+---
+title: Troubleshooting
+description: Diagnose and resolve common Webinoly issues
+---
+
+## Verify Installation
+
+### System Verification
+
+Run comprehensive system checks to identify issues:
+
+```bash
+webinoly -verify
+```
+
+This performs 7 verification tests:
+
+1. **Webinoly Integrity Test** - Checks core files and configuration
+2. **NGINX Verification** - Validates NGINX installation and configuration
+3. **PHP Verification** - Checks PHP installation and settings
+4. **MySQL/MariaDB Verification** - Validates database configuration
+5. **Service Status Verification** - Ensures all services are running
+6. **Operating System Verification** - Checks OS compatibility and settings
+7. **Additional Tools Verification** - Validates optional tools installation
+
+### Critical Mode
+
+Run only critical checks (faster, essential tests only):
+
+```bash
+webinoly -verify=critical
+```
+
+### Check for Updates
+
+Verify installation and check for available updates:
+
+```bash
+webinoly -verify -check-for-updates
+```
+
+## Common Issues
+
+### NGINX Issues
+
+#### NGINX Won't Start
+
+**Symptoms:**
+- NGINX service fails to start
+- Error messages about configuration
+
+**Solutions:**
+
+1. Test NGINX configuration:
+```bash
+sudo nginx -t
+```
+
+2. Check for syntax errors in site configurations:
+```bash
+for conf in /etc/nginx/sites-available/*; do
+  echo "Checking $conf"
+  sudo nginx -t -c $conf
+done
+```
+
+3. Review NGINX error logs:
+```bash
+sudo tail -f /var/log/nginx/error.log
+```
+
+4. Reset NGINX configuration:
+```bash
+webinoly -server-reset=nginx
+sudo systemctl restart nginx
+```
+
+#### Port Already in Use
+
+**Symptoms:**
+- Error: "Address already in use"
+- NGINX fails to bind to port
+
+**Solutions:**
+
+1. Check what's using the port:
+```bash
+sudo lsof -i :80
+sudo lsof -i :443
+```
+
+2. Stop conflicting service:
+```bash
+sudo systemctl stop apache2  # if Apache is installed
+```
+
+3. Change tools port if conflict:
+```bash
+webinoly -tools-port=9999
+```
+
+#### SSL Certificate Issues
+
+**Symptoms:**
+- SSL certificate errors
+- HTTPS not working
+
+**Solutions:**
+
+1. Check certificate files:
+```bash
+ls -la /etc/letsencrypt/live/example.com/
+```
+
+2. Test certificate renewal:
+```bash
+sudo certbot renew --dry-run
+```
+
+3. Regenerate certificate:
+```bash
+site example.com -ssl=off
+site example.com -ssl=on
+```
+
+4. Check for orphan certificates:
+```bash
+webinoly -verify | grep "Orphan-Cert"
+```
+
+### PHP Issues
+
+#### PHP-FPM Not Running
+
+**Symptoms:**
+- 502 Bad Gateway errors
+- PHP pages not loading
+
+**Solutions:**
+
+1. Check PHP-FPM status:
+```bash
+sudo systemctl status php8.3-fpm
+```
+
+2. Check PHP error logs:
+```bash
+sudo tail -f /var/log/php8.3-fpm.log
+```
+
+3. Restart PHP-FPM:
+```bash
+sudo systemctl restart php8.3-fpm
+```
+
+4. Verify PHP socket exists:
+```bash
+ls -la /run/php/php-fpm.sock
+```
+
+5. Reset PHP configuration:
+```bash
+webinoly -server-reset=php
+```
+
+#### Memory Limit Issues
+
+**Symptoms:**
+- "Allowed memory size exhausted" errors
+- PHP scripts timing out
+
+**Solutions:**
+
+1. Check current limits:
+```bash
+webinoly -info | grep -A 10 "\[PHP\]"
+```
+
+2. Increase PHP memory (requires manual edit):
+```bash
+sudo nano /etc/php/8.3/fpm/php.ini
+# Modify: memory_limit = 256M
+sudo systemctl restart php8.3-fpm
+```
+
+3. Adjust PHP workers if needed:
+```bash
+sudo nano /etc/php/8.3/fpm/pool.d/www.conf
+# Adjust pm.max_children based on RAM
+sudo systemctl restart php8.3-fpm
+```
+
+#### Upload Size Limits
+
+**Symptoms:**
+- File uploads fail
+- "Maximum upload size exceeded" errors
+
+**Solutions:**
+
+1. Check current limits:
+```bash
+php -i | grep upload_max_filesize
+php -i | grep post_max_size
+```
+
+2. Update both NGINX and PHP:
+```bash
+# Edit NGINX
+sudo nano /etc/nginx/nginx.conf
+# Set: client_max_body_size 100M;
+
+# Edit PHP
+sudo nano /etc/php/8.3/fpm/php.ini
+# Set: upload_max_filesize = 100M
+# Set: post_max_size = 100M
+
+# Restart services
+sudo systemctl reload nginx
+sudo systemctl restart php8.3-fpm
+```
+
+### MySQL/MariaDB Issues
+
+#### Cannot Connect to MySQL
+
+**Symptoms:**
+- "Access denied" errors
+- "Can't connect to MySQL server"
+
+**Solutions:**
+
+1. Check MySQL is running:
+```bash
+sudo systemctl status mysql
+```
+
+2. Verify credentials:
+```bash
+webinoly -dbpass
+```
+
+3. Test connection:
+```bash
+mysql -u admin -p
+```
+
+4. Check MySQL error logs:
+```bash
+sudo tail -f /var/log/mysql/error.log
+```
+
+5. Restart MySQL:
+```bash
+sudo systemctl restart mysql
+```
+
+#### MySQL Won't Start
+
+**Symptoms:**
+- MySQL service fails to start
+- InnoDB recovery errors
+
+**Solutions:**
+
+1. Check disk space:
+```bash
+df -h
+```
+
+2. Review MySQL error log:
+```bash
+sudo tail -100 /var/log/mysql/error.log
+```
+
+3. Check for corrupted tables:
+```bash
+sudo mysqlcheck -u root -p --auto-repair --all-databases
+```
+
+4. Reset MySQL configuration:
+```bash
+webinoly -server-reset=mysql
+```
+
+#### Remote Access Not Working
+
+**Symptoms:**
+- Cannot connect from remote host
+- Connection timeout errors
+
+**Solutions:**
+
+1. Verify public access is enabled:
+```bash
+webinoly -info | grep "Remote Access"
+```
+
+2. Check bind address:
+```bash
+sudo grep bind-address /etc/mysql/mysql.conf.d/*
+```
+
+3. Verify firewall rules:
+```bash
+sudo ufw status
+sudo ufw allow 3306/tcp
+```
+
+4. Check user permissions:
+```bash
+mysql -u admin -p -e "SELECT User, Host FROM mysql.user;"
+```
+
+### Cache Issues
+
+#### Cache Not Working
+
+**Symptoms:**
+- Pages not being cached
+- Cache headers missing
+
+**Solutions:**
+
+1. Verify cache is enabled:
+```bash
+site example.com -info | grep cache
+```
+
+2. Check cache directory:
+```bash
+ls -la /run/nginx-cache/
+```
+
+3. Clear cache:
+```bash
+webinoly -clear-cache=example.com
+```
+
+4. Check cache bypass settings:
+```bash
+grep -r "fastcgi_no_cache" /etc/nginx/common/
+```
+
+#### Redis Connection Failed
+
+**Symptoms:**
+- Redis errors in logs
+- Object cache not working
+
+**Solutions:**
+
+1. Check Redis status:
+```bash
+sudo systemctl status redis-server
+```
+
+2. Test Redis connection:
+```bash
+redis-cli ping
+```
+
+3. Restart Redis:
+```bash
+sudo systemctl restart redis-server
+```
+
+4. Clear Redis cache:
+```bash
+webinoly -clear-cache=redis
+```
+
+### Permission Issues
+
+#### File Permission Errors
+
+**Symptoms:**
+- "Permission denied" errors
+- Cannot write to files
+- Upload failures
+
+**Solutions:**
+
+1. Fix all permissions:
+```bash
+webinoly -server-reset=permissions
+```
+
+2. Fix specific site permissions:
+```bash
+sudo chown -R www-data:www-data /var/www/example.com
+sudo find /var/www/example.com -type d -exec chmod 750 {} \;
+sudo find /var/www/example.com -type f -exec chmod 640 {} \;
+```
+
+3. Check directory ownership:
+```bash
+ls -la /var/www/
+```
+
+### Site Issues
+
+#### Site Not Found (404)
+
+**Symptoms:**
+- Site returns 404 error
+- "File not found" message
+
+**Solutions:**
+
+1. Verify site exists:
+```bash
+site example.com -info
+```
+
+2. Check site is enabled:
+```bash
+ls -la /etc/nginx/sites-enabled/example.com
+```
+
+3. Verify document root:
+```bash
+ls -la /var/www/example.com/htdocs/
+```
+
+4. Check NGINX configuration:
+```bash
+sudo nginx -t
+```
+
+#### White Screen / 500 Error
+
+**Symptoms:**
+- Blank white page
+- HTTP 500 Internal Server Error
+
+**Solutions:**
+
+1. Check PHP error logs:
+```bash
+sudo tail -f /var/www/example.com/logs/error.log
+```
+
+2. Enable PHP error display (temporarily):
+```bash
+sudo nano /var/www/example.com/htdocs/wp-config.php
+# Add: define('WP_DEBUG', true);
+```
+
+3. Check file permissions:
+```bash
+webinoly -server-reset=permissions
+```
+
+4. Clear all caches:
+```bash
+webinoly -clear-cache=all
+```
+
+### Backup Issues
+
+#### Backup Failed
+
+**Symptoms:**
+- Backup command fails
+- Incomplete backups
+
+**Solutions:**
+
+1. Check disk space:
+```bash
+df -h
+```
+
+2. Verify backup tools:
+```bash
+which duplicity
+which duply
+```
+
+3. Test S3 credentials:
+```bash
+webinoly -aws-s3-credentials
+```
+
+4. Check backup configuration:
+```bash
+cat ~/.duply/*/conf
+```
+
+### Performance Issues
+
+#### Slow Site Performance
+
+**Symptoms:**
+- Pages load slowly
+- High server load
+
+**Solutions:**
+
+1. Check system resources:
+```bash
+webinoly -info
+top
+htop
+```
+
+2. Check disk I/O:
+```bash
+iostat -x 1
+```
+
+3. Review access logs for attacks:
+```bash
+sudo tail -f /var/www/example.com/logs/access.log
+```
+
+4. Enable caching if not already:
+```bash
+site example.com -cache=on
+```
+
+5. Check PHP workers:
+```bash
+webinoly -info | grep "pm.max_children"
+```
+
+#### High Memory Usage
+
+**Symptoms:**
+- Server using too much RAM
+- OOM (Out of Memory) errors
+
+**Solutions:**
+
+1. Check memory usage:
+```bash
+free -h
+```
+
+2. Identify memory-hungry processes:
+```bash
+ps aux --sort=-%mem | head -n 10
+```
+
+3. Reduce PHP workers if needed:
+```bash
+sudo nano /etc/php/8.3/fpm/pool.d/www.conf
+# Reduce pm.max_children
+```
+
+4. Increase SWAP:
+```bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+```
+
+### OS and System Issues
+
+#### Running Out of Disk Space
+
+**Symptoms:**
+- Disk usage over 75%
+- Services failing
+
+**Solutions:**
+
+1. Check disk usage:
+```bash
+df -h
+du -sh /* | sort -h
+```
+
+2. Clear old logs:
+```bash
+sudo journalctl --vacuum-time=7d
+sudo find /var/log -type f -name "*.gz" -delete
+```
+
+3. Clear package cache:
+```bash
+sudo apt clean
+sudo apt autoremove
+```
+
+4. Check large files:
+```bash
+sudo find / -type f -size +100M -exec ls -lh {} \;
+```
+
+#### Unsupported OS Version
+
+**Symptoms:**
+- Verify shows OS not supported
+- Installation fails
+
+**Solutions:**
+
+1. Check Ubuntu version:
+```bash
+lsb_release -a
+```
+
+2. Upgrade to supported version:
+- Ubuntu 24.04 LTS (recommended)
+- Ubuntu 22.04 LTS
+- Ubuntu 20.04 LTS (deprecated soon)
+
+### Configuration Issues
+
+#### Configuration File Corrupted
+
+**Symptoms:**
+- Webinoly commands fail
+- Version check errors
+
+**Solutions:**
+
+1. Regenerate configuration file:
+```bash
+webinoly -server-reset=confile
+```
+
+2. Check for duplicates:
+```bash
+grep -E "^([a-z\-]+):" /opt/webinoly/webinoly.conf | sort | uniq -d
+```
+
+3. Restore from backup:
+```bash
+sudo tar -xf ~/.webinoly-conf-restore_dont-remove -C /
+```
+
+## Diagnostic Commands
+
+### Quick Health Check
+
+```bash
+# Run verification
+webinoly -verify
+
+# Check all services
+sudo systemctl status nginx php8.3-fpm mysql redis-server memcached
+
+# View system info
+webinoly -info
+```
+
+### Log Files
+
+Important log locations:
+
+```bash
+# NGINX
+/var/log/nginx/error.log
+/var/log/nginx/access.log
+/var/www/example.com/logs/error.log
+/var/www/example.com/logs/access.log
+
+# PHP
+/var/log/php8.3-fpm.log
+
+# MySQL
+/var/log/mysql/error.log
+
+# System
+/var/log/syslog
+sudo journalctl -xe
+```
+
+### Network Diagnostics
+
+```bash
+# Check listening ports
+sudo netstat -tlnp
+sudo ss -tlnp
+
+# Test connectivity
+curl -I http://localhost
+curl -I https://example.com
+
+# Check DNS
+dig example.com
+nslookup example.com
+```
+
+## Getting Help
+
+If issues persist:
+
+1. **Run Verification**: Always start with `webinoly -verify`
+2. **Check Logs**: Review relevant log files
+3. **Test Configuration**: Use `sudo nginx -t`
+4. **Reset Configuration**: Try `webinoly -server-reset`
+5. **Community**: Report issues at [GitHub Issues](https://github.com/QROkes/webinoly/issues)
+
+<Warning>
+Before making system changes, always backup your data and configuration files.
+</Warning>
+
+## Prevention
+
+**Best practices to avoid issues:**
+
+1. Regular backups with `webinoly -backup`
+2. Keep system updated with `webinoly -update`
+3. Monitor disk space regularly
+4. Run `webinoly -verify` after changes
+5. Review logs periodically
+6. Use staging environment for testing
+7. Document custom configurations
+8. Keep emergency recovery plan
+
+## Next Steps
+
+- [Server Management](/operations/server-management) - Configure server settings
+- [Updates](/operations/updates) - Update Webinoly and stack
+- [Uninstall](/operations/uninstall) - Remove Webinoly if needed

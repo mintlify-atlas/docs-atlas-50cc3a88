@@ -1,0 +1,287 @@
+---
+title: Installing Stack Components
+description: Learn how to install and manage NGINX, PHP, and MySQL/MariaDB stack components with Webinoly
+---
+
+Webinoly provides a powerful stack management system that allows you to install and configure server components individually or as a complete LEMP stack.
+
+## Installation Profiles
+
+Webinoly offers several installation profiles to match your needs:
+
+<CardGroup cols={2}>
+  <Card title="Full Stack" icon="server">
+    Complete LEMP stack with all tools (NGINX, PHP, MySQL/MariaDB, SSL, Backups, Redis, Memcached)
+  </Card>
+  <Card title="Basic Stack" icon="layer-group">
+    LEMP core packages plus SSL and Backups
+  </Card>
+  <Card title="Light Stack" icon="feather">
+    Only essential LEMP packages (NGINX, PHP, MySQL/MariaDB)
+  </Card>
+  <Card title="Partial Stack" icon="puzzle-piece">
+    Install individual components as needed
+  </Card>
+</CardGroup>
+
+## Complete LEMP Stack Installation
+
+Install the complete stack with a single command:
+
+<CodeGroup>
+```bash Full Stack
+sudo stack -lemp
+```
+
+```bash Basic Stack (light)
+sudo stack -lemp -build=basic
+```
+
+```bash Light Stack (minimal)
+sudo stack -lemp -build=light
+```
+</CodeGroup>
+
+<Info>
+The `-lemp` option installs NGINX, PHP, and MySQL/MariaDB together. You can customize the installation with `-build` parameter.
+</Info>
+
+## Individual Component Installation
+
+### Installing NGINX
+
+Install the NGINX web server:
+
+<Steps>
+  <Step title="Install NGINX">
+    ```bash
+    sudo stack -nginx
+    ```
+    
+    This installs and optimizes NGINX with Webinoly's custom configuration.
+  </Step>
+  
+  <Step title="Choose NGINX Version">
+    Select between stable or mainline versions:
+    
+    ```bash Stable Version (Recommended)
+    sudo stack -nginx=stable
+    ```
+    
+    ```bash Mainline Version
+    sudo stack -nginx=mainline
+    ```
+  </Step>
+  
+  <Step title="Verify Installation">
+    Check NGINX status:
+    
+    ```bash
+    sudo systemctl status nginx
+    nginx -v
+    ```
+  </Step>
+</Steps>
+
+### Installing PHP
+
+Install PHP-FPM with all required extensions:
+
+<Steps>
+  <Step title="Install PHP">
+    ```bash
+    sudo stack -php
+    ```
+    
+    If NGINX is not installed, you'll be prompted to install it.
+  </Step>
+  
+  <Step title="PHP with NGINX">
+    Install both NGINX and PHP together:
+    
+    ```bash
+    sudo stack -php=nginx
+    ```
+  </Step>
+</Steps>
+
+<Info>
+Webinoly automatically installs the following PHP extensions:
+- php-common, php-cli, php-fpm
+- php-curl, php-gd, php-imap
+- php-readline, php-mysql, php-mbstring
+- php-bcmath, php-zip, php-xml
+- php-soap, php-imagick, php-msgpack
+- php-igbinary, php-intl, php-opcache
+- graphviz, ghostscript
+</Info>
+
+### Installing MySQL/MariaDB
+
+Install database server:
+
+<CodeGroup>
+```bash Full MySQL/MariaDB Server
+sudo stack -mysql
+```
+
+```bash Client Only
+sudo stack -mysql=client
+```
+</CodeGroup>
+
+<Warning>
+During installation, root and admin passwords are automatically generated and securely stored. Database credentials are no longer displayed in the terminal for security reasons.
+</Warning>
+
+## Build Options
+
+Control what gets installed using build parameters:
+
+<CodeGroup>
+```bash Light Build
+# Only core packages, no additional tools
+sudo stack -lemp -build=light
+```
+
+```bash Basic Build
+# Core packages + Let's Encrypt + Backups
+sudo stack -lemp -build=basic
+```
+
+```bash Full Build (Default)
+# Everything including Redis and Memcached
+sudo stack -lemp
+```
+</CodeGroup>
+
+## Installation Process
+
+Webinoly follows a systematic installation process:
+
+<Steps>
+  <Step title="Pre-Installation Checks">
+    - Verifies Ubuntu version compatibility
+    - Checks for required system packages
+    - Installs essential dependencies
+  </Step>
+  
+  <Step title="Repository Configuration">
+    - Adds official package repositories
+    - Configures GPG keys for security
+    - Updates package lists
+  </Step>
+  
+  <Step title="Package Installation">
+    - Installs selected components
+    - Configures services automatically
+    - Enables systemd services
+  </Step>
+  
+  <Step title="Optimization">
+    - Applies Webinoly optimizations
+    - Configures security settings
+    - Creates admin tools site
+  </Step>
+  
+  <Step title="Verification">
+    - Verifies all services are running
+    - Checks configuration integrity
+    - Reports installation status
+  </Step>
+</Steps>
+
+## Unattended Installation
+
+For automated deployments, Webinoly supports unattended installation:
+
+```bash
+# Set configuration before installation
+sudo webinoly -config-set=php-ver:8.4
+sudo webinoly -config-set=mysql-ver:11.8
+sudo webinoly -config-set=nginx-ppa:stable
+
+# Install with force flag (no prompts)
+sudo stack -lemp -force
+```
+
+## Installation Requirements
+
+### System Requirements
+
+- **Operating System**: Ubuntu 20.04 (Focal), 22.04 (Jammy), or 24.04 (Noble)
+- **Architecture**: AMD64, ARM64
+- **RAM**: Minimum 512MB (1GB+ recommended)
+- **Disk Space**: Minimum 2GB free space
+- **Privileges**: Root or sudo access required
+
+### Network Requirements
+
+- Active internet connection for package downloads
+- Access to official package repositories
+- Ports 80 and 443 available for web traffic
+
+## Post-Installation
+
+After installation, Webinoly automatically:
+
+- Creates an admin tools site accessible at `http://your-server-ip:22222`
+- Configures firewall rules (if UFW is enabled)
+- Sets up log rotation
+- Creates SWAP file if needed
+- Optimizes kernel parameters
+
+<Info>
+View your installation details:
+```bash
+sudo stack -info
+```
+</Info>
+
+## Troubleshooting Installation
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Installation fails with repository errors">
+    Clear package cache and retry:
+    ```bash
+    sudo apt clean
+    sudo apt update
+    sudo stack -nginx
+    ```
+  </Accordion>
+  
+  <Accordion title="Service won't start after installation">
+    Check service status and logs:
+    ```bash
+    sudo systemctl status nginx
+    sudo journalctl -xe
+    ```
+  </Accordion>
+  
+  <Accordion title="Port conflicts during installation">
+    Ensure ports 80 and 443 are available:
+    ```bash
+    sudo netstat -tlnp | grep :80
+    sudo netstat -tlnp | grep :443
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configure NGINX" icon="gear" href="/stack/nginx-configuration">
+    Customize NGINX settings and optimization
+  </Card>
+  <Card title="Manage PHP Versions" icon="code" href="/stack/php-versions">
+    Switch between PHP versions and configure settings
+  </Card>
+  <Card title="Setup Database" icon="database" href="/stack/mysql-mariadb">
+    Configure MySQL/MariaDB and manage users
+  </Card>
+  <Card title="Install Tools" icon="wrench" href="/stack/additional-tools">
+    Add Redis, Memcached, and other tools
+  </Card>
+</CardGroup>

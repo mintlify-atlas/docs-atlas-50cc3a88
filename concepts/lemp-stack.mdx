@@ -1,0 +1,260 @@
+---
+title: "LEMP stack"
+description: "Understanding the Linux, Nginx, MySQL/MariaDB, and PHP stack that powers Webinoly"
+---
+
+Webinoly is built on the LEMP stack—a powerful combination of Linux, Nginx, MySQL/MariaDB, and PHP that provides a robust foundation for hosting websites and applications.
+
+## What is LEMP?
+
+LEMP is an acronym for the four core components:
+
+- **L**inux: The operating system (Ubuntu 20.04, 22.04, or 24.04)
+- **E**ngine-x (Nginx): The web server
+- **M**ySQL/MariaDB: The database management system
+- **P**HP: The server-side scripting language
+
+<Note>
+  The "E" in LEMP comes from the pronunciation of Nginx as "Engine-x".
+</Note>
+
+## Stack components
+
+### Nginx web server
+
+Webinoly installs and optimizes Nginx as the primary web server with:
+
+- **HTTP/2 and HTTP/3 support**: Modern protocol support for improved performance
+- **TLS 1.2 and 1.3**: Secure SSL/TLS connections with modern ciphers
+- **kTLS (Kernel TLS)**: Hardware-accelerated encryption on Ubuntu 22.04+
+- **Rate limiting**: Protection against DDoS attacks and brute force attempts
+- **Gzip compression**: Automatic compression of text-based content
+
+<Tabs>
+  <Tab title="Stable">
+    The stable branch is recommended for production environments and provides long-term stability.
+
+    ```bash
+    sudo stack -nginx -nginx-ppa=stable
+    ```
+  </Tab>
+  <Tab title="Mainline">
+    The mainline branch includes the latest features and improvements.
+
+    ```bash
+    sudo stack -nginx -nginx-ppa=mainline
+    ```
+  </Tab>
+</Tabs>
+
+### PHP-FPM
+
+PHP is installed with FastCGI Process Manager (FPM) for optimal performance:
+
+**Supported versions**: 7.4, 8.0, 8.1, 8.2, 8.3, 8.4, 8.5
+
+**Default version**: 8.4 (as of Webinoly 1.20.0)
+
+**Pre-installed extensions**:
+- **Core**: CLI, FPM, Common, cURL, GD, Readline, Mbstring, Bcmath, XML, Intl
+- **Database**: MySQL/MySQLi
+- **Caching**: OPcache (bundled in PHP 8.5+), Msgpack, Igbinary
+- **File handling**: Zip, Imap
+- **Other**: Soap, Imagick
+
+<Info>
+  Webinoly automatically optimizes PHP settings based on your server's available resources.
+</Info>
+
+**Process management**:
+
+```bash
+# Process manager modes
+pm = dynamic          # Default (calculated based on resources)
+pm.max_children = 10  # Maximum number of child processes
+pm.start_servers = 3  # Initial number of processes
+pm.min_spare_servers = 3
+pm.max_spare_servers = 6
+```
+
+### MySQL/MariaDB
+
+Choose between MySQL or MariaDB as your database engine:
+
+<Tabs>
+  <Tab title="MariaDB">
+    **Default choice** - Open-source, MySQL-compatible database server
+
+    **Supported versions**: 10.11, 11.4, 11.8 (LTS releases)
+
+    **Default version**: 11.8
+
+    ```bash
+    sudo stack -mysql -mysql-ver=11.8
+    ```
+  </Tab>
+  <Tab title="MySQL">
+    Oracle's official MySQL server
+
+    **Supported versions**: 8.0, 8.4
+
+    **Default version**: 8.4
+
+    ```bash
+    sudo stack -mysql -db-engine=mysql -mysql-ver=8.4
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+  Choose your database engine before installation. Switching between MySQL and MariaDB after installation requires a complete reinstallation.
+</Warning>
+
+## Installation profiles
+
+Webinoly offers multiple installation profiles to suit different needs:
+
+### Full stack
+
+Complete LEMP stack with all features:
+
+```bash
+sudo webinoly -lemp
+```
+
+**Includes**:
+- Nginx (web server)
+- PHP-FPM (latest stable version)
+- MySQL/MariaDB (database server)
+- Let's Encrypt (SSL certificates)
+- Backup tools (Duplicity + Duply)
+- Redis (object caching)
+- Memcached (alternative caching)
+- phpMyAdmin (database management)
+- Postfix (email delivery)
+
+### Basic stack
+
+Core LEMP components plus SSL and backups:
+
+```bash
+sudo webinoly -basic
+```
+
+**Includes**:
+- Nginx
+- PHP-FPM
+- MySQL/MariaDB
+- Let's Encrypt
+- Backup tools
+- Postfix
+
+### Light stack
+
+Minimal LEMP installation:
+
+```bash
+sudo webinoly -light
+```
+
+**Includes**:
+- Nginx
+- PHP-FPM
+- MySQL/MariaDB
+
+### Individual components
+
+Install components separately:
+
+```bash
+# Install only Nginx
+sudo stack -nginx
+
+# Install only PHP
+sudo stack -php
+
+# Install only MySQL/MariaDB
+sudo stack -mysql
+
+# Add Redis later
+sudo stack -redis
+```
+
+## Optimizations
+
+Webinoly automatically optimizes the LEMP stack based on your server resources:
+
+### Resource-based tuning
+
+- **Worker processes**: Set to number of CPU cores (`worker_processes auto`)
+- **Worker connections**: Up to 20,000 concurrent connections per worker
+- **PHP-FPM pool**: Calculated based on available RAM
+- **File descriptors**: Optimized for high traffic (`worker_rlimit_nofile`)
+- **FastCGI cache**: 90% of `/run` folder size allocated for caching
+
+### Security hardening
+
+- Server tokens disabled (version information hidden)
+- Unnecessary PHP functions disabled by default
+- Session security configured (HTTPOnly, Secure, SameSite)
+- File upload restrictions enforced
+- DH parameters generated (2048-bit)
+
+### Performance tuning
+
+- OPcache enabled and optimized
+- Open file cache configured
+- TCP optimizations (tcp_nopush, tcp_nodelay)
+- Sendfile enabled for efficient file serving
+- Connection timeouts optimized
+
+## Configuration file
+
+All LEMP stack settings can be customized in `/opt/webinoly/webinoly.conf`:
+
+```bash
+# Edit configuration
+sudo nano /opt/webinoly/webinoly.conf
+
+# Apply changes
+sudo webinoly -server-reset
+```
+
+<Info>
+  See the [Configuration file](/concepts/configuration-file) documentation for all available settings.
+</Info>
+
+## Verification
+
+Check the status of your LEMP stack:
+
+```bash
+# Full system verification
+sudo webinoly -verify
+
+# Check specific services
+sudo systemctl status nginx
+sudo systemctl status php8.4-fpm
+sudo systemctl status mysql
+```
+
+## Admin tools
+
+Webinoly provides a special admin tools site accessible on port 22222:
+
+- **Nginx status**: Server status and metrics
+- **PHP info**: PHP configuration and loaded extensions  
+- **PHP status**: PHP-FPM pool status and statistics
+- **Redis/Memcached**: Object cache status (if installed)
+
+```bash
+# Access admin tools
+http://your-server-ip:22222
+
+# Change admin tools port
+sudo webinoly -tools-port=8080
+```
+
+<Warning>
+  Admin tools are protected with HTTP authentication by default. Keep these credentials secure.
+</Warning>

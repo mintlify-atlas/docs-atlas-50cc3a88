@@ -1,0 +1,350 @@
+---
+title: Backup and Restore
+description: Comprehensive backup strategies including local, S3, and full server backups
+---
+
+Webinoly provides robust backup capabilities for databases, sites, and entire server configurations. This guide covers all backup options from local backups to automated S3 synchronization.
+
+## Database Backups
+
+### Local Database Backup
+
+Backup a WordPress site database:
+
+```bash
+sudo webinoly -backup=local -wp=example.com
+```
+
+Backup a specific database:
+
+```bash
+sudo webinoly -backup=local -dbname=my_database
+```
+
+### Backup Multiple Databases
+
+```bash
+# Backup multiple databases
+sudo webinoly -backup=local -dbname=[db1,db2,db3]
+
+# Backup all databases
+sudo webinoly -backup=local -dbname=all
+```
+
+### Custom Backup Location
+
+```bash
+# Specify destination folder
+sudo webinoly -backup=local -wp=example.com -destination=/backups
+
+# Custom filename
+sudo webinoly -backup=local -wp=example.com -filename=my-backup.sql
+```
+
+<Tip>
+Default backup location: `~/webinoly-backups/[site-name]/`
+</Tip>
+
+### Automatic Rotation
+
+Keep only the last N backups:
+
+```bash
+# Keep only last 5 backups
+sudo webinoly -backup=local -wp=example.com -max=5
+```
+
+## Site Backups
+
+Export complete site configurations including files and databases.
+
+### Export a Site
+
+```bash
+# Export single site
+sudo webinoly -backup=export -site=example.com
+```
+
+This creates a tar archive containing:
+- Nginx configuration files
+- Site files and directories
+- Database backup (if WordPress)
+- SSL certificates
+- Custom cache configurations
+
+### Export Multiple Sites
+
+```bash
+sudo webinoly -backup=export -site=[example.com,demo.com,test.com]
+```
+
+### Export with Subfolder
+
+```bash
+sudo webinoly -backup=export -site=example.com -subfolder=/blog
+```
+
+### Skip Database in Export
+
+```bash
+sudo webinoly -backup=export -site=example.com -skip-db
+```
+
+## Full Server Backup
+
+Export your entire Webinoly server configuration.
+
+### Export Server
+
+```bash
+sudo webinoly -backup=export -server
+```
+
+This exports:
+- Webinoly configuration file
+- All Nginx configurations
+- All sites and databases
+- SSL certificates (Let's Encrypt)
+- HTTP authentication files
+- Custom headers
+- AWS credentials
+
+### Server Export with S3 Upload
+
+```bash
+sudo webinoly -backup=export -server -bucket=my-bucket -max=7
+```
+
+<Warning>
+Full server backups can be large. Ensure adequate disk space before running.
+</Warning>
+
+## AWS S3 Backups
+
+Automate backups to AWS S3 for off-site storage and disaster recovery.
+
+### Setup S3 Credentials
+
+```bash
+sudo webinoly -aws-s3-credentials=[access_key,secret_key]
+```
+
+Or use interactive mode:
+
+```bash
+sudo webinoly -aws-s3-credentials
+# Enter Access Key ID and Secret Access Key when prompted
+```
+
+### Using IAM Roles
+
+For EC2 instances with IAM roles:
+
+```bash
+sudo webinoly -aws-s3-credentials=awsiamrole
+```
+
+### Create S3 Backup Profile
+
+```bash
+sudo webinoly -backup=s3 -profile=myprofile
+```
+
+You'll be prompted for:
+- **S3 Bucket name**: Your S3 bucket (e.g., `my-backups` or `my-backups/folder`)
+- **Source path**: Local directory to backup (e.g., `/var/www/example.com`)
+- **Max age**: How long to keep backups (default: 1M for 1 month)
+
+### S3 Profile Management
+
+```bash
+# List all backup profiles
+sudo webinoly -backup=s3 -list
+
+# View profile information
+sudo webinoly -backup=s3 -profile=myprofile -info
+
+# Delete a profile
+sudo webinoly -backup=s3 -profile=myprofile -delete
+```
+
+### Run S3 Backup
+
+```bash
+sudo webinoly -backup=s3 -profile=myprofile -run
+```
+
+This performs:
+- Incremental backup to S3
+- Verification of uploaded files
+- Automatic cleanup based on max age
+
+### Automated Database Backups to S3
+
+Configure pre-backup database dumps:
+
+```bash
+# Add database backup before S3 sync
+sudo webinoly -backup=s3 -profile=myprofile -add-db-pre=example.com
+
+# With custom retention
+sudo webinoly -backup=s3 -profile=myprofile -add-db-pre=example.com -max=10
+
+# Upload to S3 bucket
+sudo webinoly -backup=s3 -profile=myprofile -add-db-pre=example.com -bucket=db-backups
+```
+
+### List and Remove Pre-Backups
+
+```bash
+# List configured pre-backups
+sudo webinoly -backup=s3 -profile=myprofile -add-db-pre -list
+
+# Remove pre-backup configuration
+sudo webinoly -backup=s3 -profile=myprofile -add-db-pre -delete
+```
+
+## S3-Compatible Services
+
+Use S3-compatible services like DigitalOcean Spaces, Wasabi, or MinIO:
+
+```bash
+# Create profile with custom endpoint
+sudo webinoly -backup=s3 -profile=spaces -s3-compatible-endpoint=https://nyc3.digitaloceanspaces.com
+
+# Send file to S3-compatible service
+sudo webinoly -backup=s3 -send-to-s3=/path/to/file -bucket=my-bucket -s3-compatible-endpoint=https://s3.wasabisys.com
+```
+
+## Restore from Backup
+
+### Restore from S3
+
+```bash
+# Restore entire backup
+sudo webinoly -backup=s3 -profile=myprofile -restore -destination=/var/www/restore
+
+# Restore specific file or folder
+sudo webinoly -backup=s3 -profile=myprofile -restore=htdocs/wp-content -destination=/tmp/restore
+
+# Restore from specific date
+sudo webinoly -backup=s3 -profile=myprofile -restore -destination=/restore -date=7D
+```
+
+Date format options:
+- `3D` - 3 days ago
+- `2W` - 2 weeks ago  
+- `1M` - 1 month ago
+- `2023-12-25` - Specific date
+
+### Import Database
+
+```bash
+# Import SQL file
+sudo webinoly -db-import -file=/path/to/backup.sql
+
+# Import to specific database
+sudo webinoly -db-import -file=/path/to/backup.sql -dbname=my_database
+```
+
+### Import Site Backup
+
+```bash
+sudo webinoly -backup=import -file=/path/to/site-backup.tar
+```
+
+This restores:
+- Nginx site configuration
+- Site files and directories
+- Database (if included)
+- SSL certificates
+- HTTP authentication
+
+### Import Full Server
+
+```bash
+# Import full server configuration
+sudo webinoly -backup=import -file=/path/to/server-backup.tar -import=full
+
+# Import only stack configuration
+sudo webinoly -backup=import -file=/path/to/server-backup.tar -import=stack
+
+# Import only sites (no stack)
+sudo webinoly -backup=import -file=/path/to/server-backup.tar -import=sites
+```
+
+<Warning>
+Importing a full server backup on an existing installation may overwrite current configurations. Use `-import=sites` for safer restoration.
+</Warning>
+
+## Send Files to S3
+
+Manually upload files to S3:
+
+```bash
+sudo webinoly -backup=s3 -send-to-s3=/path/to/file.tar -bucket=my-bucket
+```
+
+## Backup Best Practices
+
+1. **Regular Schedule**: Set up cron jobs for automated backups
+   ```bash
+   # Daily database backup at 2 AM
+   0 2 * * * sudo webinoly -backup=local -dbname=all -max=7
+   
+   # Weekly full S3 backup
+   0 3 * * 0 sudo webinoly -backup=s3 -profile=weekly -run
+   ```
+
+2. **3-2-1 Rule**: Keep 3 copies on 2 different media with 1 offsite
+
+3. **Test Restores**: Regularly test backup restoration procedures
+
+4. **Monitor Backup Size**: Track backup growth over time
+   ```bash
+   du -sh ~/webinoly-backups/*
+   ```
+
+5. **Exclude Temporary Files**: Configure backup profiles to skip cache and temp directories
+
+## Backup Wizard
+
+Use the interactive backup wizard:
+
+```bash
+sudo webinoly -backup
+```
+
+This provides a menu-driven interface for:
+- Adding AWS S3 credentials
+- Creating S3 backup profiles
+- Running backups
+- Managing configurations
+- Exporting sites and servers
+
+## Troubleshooting
+
+### S3 Connection Issues
+
+```bash
+# Verify credentials
+cat ~/.aws/credentials
+
+# Test connection with AWS CLI
+aws s3 ls s3://my-bucket
+```
+
+### Large Backup Failures
+
+For very large backups, consider:
+- Excluding cache directories
+- Using incremental backups
+- Increasing timeout values
+- Splitting into multiple profiles
+
+### Backup Not Running
+
+Check duply logs:
+```bash
+sudo cat ~/.duply/[profile]/backup.log
+```

@@ -1,0 +1,747 @@
+---
+title: "site Command"
+description: "Create, manage, and configure websites with support for HTML, PHP, WordPress, and more"
+---
+
+## Overview
+
+The `site` command is your primary tool for managing websites on your Webinoly server. It supports creating HTML, PHP, MySQL, and WordPress sites, along with advanced features like SSL, caching, cloning, and multisite conversion.
+
+## Basic Usage
+
+```bash
+sudo site <domain> <option> <argument>
+```
+
+## Creating Sites
+
+### HTML Site
+
+Create a static HTML site:
+
+```bash
+sudo site example.com -html
+```
+
+With subfolder:
+
+```bash
+sudo site example.com -html -subfolder=/docs
+```
+
+### PHP Site
+
+Create a PHP site:
+
+```bash
+sudo site example.com -php
+```
+
+With subfolder:
+
+```bash
+sudo site example.com -php -subfolder=/app
+```
+
+### MySQL/PHP Site
+
+Create a PHP site with MySQL database:
+
+```bash
+# Interactive mode (prompts for database details)
+sudo site example.com -mysql
+
+# Unattended mode
+sudo site example.com -mysql=[localhost,dbname,dbuser,dbpass]
+```
+
+<ParamField path="-mysql" type="string">
+  Database configuration:
+  - `true` - Interactive mode (prompts for details)
+  - `[host,name,user,pass]` - Unattended mode with database credentials
+  - `default` - Use default settings (deprecated, use `true`)
+</ParamField>
+
+### WordPress Site
+
+Create a WordPress site:
+
+```bash
+# Interactive mode
+sudo site example.com -wp
+
+# Unattended mode (full configuration)
+sudo site example.com -wp=[true,true,localhost,dbname,dbuser,dbpass,wp_]
+```
+
+<ParamField path="-wp" type="string">
+  WordPress installation configuration:
+  
+  Format: `[setupdb,setupwp,dbhost,dbname,dbuser,dbpass,dbprefix,extdbuser,extdbpass]`
+  
+  - `setupdb` - Create database (true/false)
+  - `setupwp` - Install WordPress (true/false)
+  - `dbhost` - Database host (localhost or IP:port)
+  - `dbname` - Database name
+  - `dbuser` - Database user
+  - `dbpass` - Database password (`random` generates random password)
+  - `dbprefix` - WordPress table prefix
+  - `extdbuser` - External DB admin user (optional)
+  - `extdbpass` - External DB admin password (optional)
+</ParamField>
+
+<ParamField path="-env" type="string">
+  WordPress environment type:
+  - `production` - Production environment (default)
+  - `staging` - Staging environment
+  - `development` - Development environment
+  - `local` - Local development
+</ParamField>
+
+WordPress with subfolder:
+
+```bash
+sudo site example.com -wp -subfolder=/blog
+```
+
+WordPress with custom environment:
+
+```bash
+sudo site example.com -wp -env=staging
+```
+
+### Empty Site
+
+Create an empty site structure for custom Nginx configuration:
+
+```bash
+# Empty site with basic structure
+sudo site example.com -empty
+
+# Completely blank site
+sudo site example.com -empty=blank
+```
+
+<Note>
+  Empty sites require you to add your own Nginx configuration in `/var/www/example.com/*-nginx.conf`
+</Note>
+
+### Parked Domain
+
+Park a domain (point to another site):
+
+```bash
+sudo site parked.com -parked=example.com
+```
+
+<ParamField path="-parked" type="string">
+  Main domain to park to
+</ParamField>
+
+<ParamField path="-root-path" type="string">
+  Custom root path for parked domain (optional)
+</ParamField>
+
+### Reverse Proxy
+
+Create a reverse proxy:
+
+```bash
+# Proxy to local port
+sudo site example.com -proxy=3000
+
+# Proxy to remote server
+sudo site example.com -proxy=http://backend.internal:8080
+
+# Dedicated reverse proxy (different FastCGI cache)
+sudo site example.com -proxy=3000 -dedicated-reverse-proxy
+```
+
+<ParamField path="-proxy" type="string">
+  Proxy target:
+  - Port number (e.g., `3000`) - Proxies to localhost:port
+  - Full URL (e.g., `http://backend:8080`) - Proxies to remote server
+</ParamField>
+
+<ParamField path="-dedicated-reverse-proxy" type="boolean">
+  Use separate FastCGI cache for reverse proxy
+</ParamField>
+
+### Forward Domain
+
+Forward/redirect a domain:
+
+```bash
+# Redirect to another domain
+sudo site old.com -forward=new.com
+
+# Custom HTTP redirect code
+sudo site old.com -forward=new.com -http-code=302
+```
+
+<ParamField path="-forward" type="string">
+  Target domain to forward to
+</ParamField>
+
+<ParamField path="-http-code" type="number" default="301">
+  HTTP redirect code (301 or 302)
+</ParamField>
+
+## SSL/TLS Configuration
+
+### Enable SSL with Let's Encrypt
+
+```bash
+# Request SSL certificate
+sudo site example.com -ssl
+
+# Test certificate (staging)
+sudo site example.com -ssl -test-cert
+
+# Wildcard certificate (requires manual DNS verification)
+sudo site example.com -ssl -wildcard
+```
+
+<ParamField path="-ssl" type="string">
+  SSL configuration:
+  - `on` - Enable SSL with Let's Encrypt
+  - `off` - Disable SSL
+  - `force-renewal` - Force certificate renewal
+  - `renew` - Renew all certificates
+  - `force-renewal-all` - Force renew all certificates
+</ParamField>
+
+<ParamField path="-wildcard" type="boolean">
+  Request wildcard certificate (*.example.com)
+</ParamField>
+
+<ParamField path="-test-cert" type="boolean">
+  Use Let's Encrypt staging environment for testing
+</ParamField>
+
+### Add Subdomain to Wildcard Certificate
+
+```bash
+sudo site sub.example.com -ssl -add-to-wildcard=example.com
+```
+
+<ParamField path="-add-to-wildcard" type="string">
+  Wildcard domain certificate to use
+</ParamField>
+
+### Custom SSL Certificate
+
+```bash
+sudo site example.com -ssl=on -ssl-crt=/path/to/cert.crt -ssl-key=/path/to/key.key
+```
+
+<ParamField path="-ssl-crt" type="string">
+  Path to SSL certificate file
+</ParamField>
+
+<ParamField path="-ssl-key" type="string">
+  Path to SSL private key file
+</ParamField>
+
+### Force HTTPS Redirect
+
+Configure www/non-www redirect:
+
+```bash
+# Force www (example.com → www.example.com)
+sudo site example.com -force-redirect=www
+
+# Force root/non-www (www.example.com → example.com)
+sudo site example.com -force-redirect=root
+
+# Disable forced redirect
+sudo site example.com -force-redirect=off
+```
+
+<ParamField path="-force-redirect" type="string">
+  Redirect type:
+  - `www` - Force www subdomain
+  - `root` - Force non-www (root domain)
+  - `off` - Disable forced redirect
+</ParamField>
+
+<Note>
+  SSL must be enabled before configuring force-redirect. Subdomains cannot use force-redirect.
+</Note>
+
+## FastCGI Cache
+
+### Enable Cache
+
+```bash
+# Enable FastCGI cache for WordPress
+sudo site example.com -cache=on
+
+# Enable with subfolder
+sudo site example.com -cache=on -subfolder=/blog
+```
+
+<ParamField path="-cache" type="string">
+  Cache configuration:
+  - `on` - Enable FastCGI cache
+  - `off` - Disable FastCGI cache
+</ParamField>
+
+### Custom Cache Configuration
+
+```bash
+# Custom cache valid time
+sudo site example.com -cache=on -cache-valid=7d
+
+# Skip cache for specific paths
+sudo site example.com -skip-cache=/checkout,/cart
+
+# Skip cache based on cookies
+sudo site example.com -skip-cookie-cache=wordpress_logged_in
+
+# Query string cache behavior
+sudo site example.com -query-string-cache=page,product_id
+sudo site example.com -query-string-never-cache=nocache
+
+# Use default query string caching
+sudo site example.com -query-string-cache-default
+```
+
+<ParamField path="-cache-valid" type="string">
+  Cache valid time (e.g., `1h`, `30m`, `7d`)
+</ParamField>
+
+<ParamField path="-wp-cache-plugins" type="boolean">
+  Include WordPress cache plugin configurations
+</ParamField>
+
+<ParamField path="-skip-cache" type="string">
+  Comma-separated paths to skip caching
+</ParamField>
+
+<ParamField path="-skip-cookie-cache" type="string">
+  Comma-separated cookies that bypass cache
+</ParamField>
+
+<ParamField path="-query-string-cache" type="string">
+  Query strings to include in cache key
+</ParamField>
+
+<ParamField path="-query-string-never-cache" type="string">
+  Query strings that always bypass cache
+</ParamField>
+
+<ParamField path="-query-string-cache-default" type="boolean">
+  Use default query string configuration
+</ParamField>
+
+<ParamField path="-reset" type="boolean">
+  Reset cache configuration to defaults
+</ParamField>
+
+## Site Operations
+
+### Enable/Disable Site
+
+```bash
+# Disable site (keep configuration)
+sudo site example.com -off
+
+# Re-enable site
+sudo site example.com -on
+```
+
+<ParamField path="-on" type="boolean">
+  Enable a disabled site
+</ParamField>
+
+<ParamField path="-off" type="boolean">
+  Disable a site (keeps all files and configuration)
+</ParamField>
+
+### Delete Site
+
+```bash
+# Delete site (prompts for confirmation)
+sudo site example.com -delete
+
+# Delete subfolder installation
+sudo site example.com -delete -subfolder=/blog
+
+# Force delete without confirmation
+sudo site example.com -delete=force
+```
+
+<ParamField path="-delete" type="string">
+  Delete site:
+  - `true` - Delete with confirmation
+  - `force` - Delete without confirmation
+</ParamField>
+
+<ParamField path="-delete-all" type="string">
+  Delete all sites:
+  - `true` - Delete all (prompts for confirmation)
+  - `force` - Delete all without confirmation
+</ParamField>
+
+<Warning>
+  Deleting a site removes all files, databases, and configurations. Create a backup first!
+</Warning>
+
+### List Sites
+
+List all configured sites:
+
+```bash
+sudo site -list
+```
+
+Example output:
+```
++ example.com - WordPress (FastCGI Cache: ON | SSL: ON)
++ test.com - PHP (SSL: OFF)
++ static.com - HTML
+```
+
+### Site Information
+
+Display detailed site information:
+
+```bash
+# Main site info
+sudo site example.com -info
+
+# Subfolder info
+sudo site example.com -info -subfolder=/blog
+```
+
+Shows:
+- Site type (HTML, PHP, WordPress, etc.)
+- SSL status and certificate details
+- Cache status
+- Database information (for WordPress/MySQL sites)
+- Multisite configuration
+- File paths
+
+## WordPress Management
+
+### Convert to Multisite
+
+Convert WordPress single site to multisite:
+
+```bash
+# Subdomain multisite
+sudo site example.com -multisite-convert=subdomain
+
+# Subdirectory multisite
+sudo site example.com -multisite-convert=subdirectory
+```
+
+<ParamField path="-multisite-convert" type="string">
+  Multisite type:
+  - `subdomain` - Subdomain-based multisite
+  - `subdirectory` - Subdirectory-based multisite
+</ParamField>
+
+<Warning>
+  Multisite conversion is irreversible. Backup your site first!
+</Warning>
+
+### Clone Site
+
+Clone an existing site to a new domain:
+
+```bash
+# Clone entire site
+sudo site newsite.com -clone-from=example.com
+
+# Clone to subfolder
+sudo site example.com -clone-from=example.com -subfolder=/staging
+
+# Overwrite existing site
+sudo site newsite.com -clone-from=example.com -overwrite=on
+```
+
+<ParamField path="-clone-from" type="string">
+  Source domain to clone from
+</ParamField>
+
+<ParamField path="-overwrite" type="string">
+  Overwrite destination if it exists:
+  - `on` - Overwrite existing site
+</ParamField>
+
+Supports cloning from/to subfolders:
+
+```bash
+# Clone subfolder to main site
+sudo site staging.com -clone-from=example.com -subfolder=/blog
+```
+
+<Note>
+  - Only HTML, PHP, and WordPress sites can be cloned
+  - Source and destination must be the same site type
+  - WordPress multisite cannot be cloned
+</Note>
+
+### Replace Content
+
+Search and replace in WordPress database:
+
+```bash
+# Interactive mode
+sudo site example.com -replace-content
+
+# Direct replacement
+sudo site example.com -replace-content -from=oldtext -to=newtext
+```
+
+<ParamField path="-from" type="string">
+  Text to search for
+</ParamField>
+
+<ParamField path="-to" type="string">
+  Replacement text
+</ParamField>
+
+<Note>
+  Commonly used when changing domains or fixing URLs in the database
+</Note>
+
+### WordPress Environment Type
+
+Set WordPress environment type:
+
+```bash
+sudo site example.com -env=production
+sudo site example.com -env=staging
+sudo site example.com -env=development
+```
+
+<ParamField path="-env" type="string">
+  WordPress environment:
+  - `production` - Production (WP_DEBUG off)
+  - `staging` - Staging (WP_DEBUG on, display off)
+  - `development` - Development (WP_DEBUG on, display on)
+  - `local` - Local development
+</ParamField>
+
+## Redirections
+
+Manage URL redirections:
+
+```bash
+# Add redirection
+sudo site example.com -redirection=/old-path -to=/new-path
+
+# Redirection with custom HTTP code
+sudo site example.com -redirection=/old -to=/new -http-code=302
+
+# Regex redirection
+sudo site example.com -redirection=/blog/(.*) -to=/news/$1 -regex
+
+# Exact match only
+sudo site example.com -redirection=/exact-path -to=/new -exact
+
+# List all redirections
+sudo site example.com -redirection -list
+
+# Delete redirection
+sudo site example.com -redirection=/old-path -delete
+
+# Delete all redirections
+sudo site example.com -redirection -delete-all
+```
+
+<ParamField path="-redirection" type="string">
+  Source path to redirect from
+</ParamField>
+
+<ParamField path="-to" type="string">
+  Destination path or URL
+</ParamField>
+
+<ParamField path="-http-code" type="number" default="301">
+  HTTP redirect code (301, 302, etc.)
+</ParamField>
+
+<ParamField path="-regex" type="boolean">
+  Use regex for redirection matching
+</ParamField>
+
+<ParamField path="-exact" type="boolean">
+  Exact path match only (no path prefix matching)
+</ParamField>
+
+## Advanced Options
+
+### External Database
+
+Use external MySQL/MariaDB server:
+
+```bash
+# Interactive setup
+sudo site example.com -wp -external-db
+
+# Or provide in WP config
+sudo site example.com -wp=[true,true,192.168.1.100:3306,dbname,dbuser,dbpass,wp_,extadmin,extpass]
+```
+
+<ParamField path="-external-db" type="boolean">
+  Use external database (prompts for connection details)
+</ParamField>
+
+### Custom Root Path
+
+Specify custom document root:
+
+```bash
+sudo site example.com -php -root=/custom/path
+```
+
+<ParamField path="-root" type="string">
+  Custom document root path
+</ParamField>
+
+### Subdomain Handling
+
+Control subdomain behavior:
+
+```bash
+# Create site for specific subdomain only
+sudo site sub.example.com -wp -subdomain=true
+```
+
+<ParamField path="-subdomain" type="boolean">
+  Treat as subdomain (affects www handling)
+</ParamField>
+
+### Ignore SSL Checks
+
+Skip SSL verification during certain operations:
+
+```bash
+sudo site example.com -clone-from=source.com -ignore-ssl
+```
+
+<ParamField path="-ignore-ssl" type="boolean">
+  Skip SSL certificate verification
+</ParamField>
+
+## Examples
+
+### Simple WordPress Site
+
+```bash
+# Create WordPress site with SSL
+sudo site example.com -wp
+sudo site example.com -ssl
+sudo site example.com -cache=on
+```
+
+### WordPress Multisite with SSL
+
+```bash
+# Create main site
+sudo site example.com -wp
+
+# Get wildcard certificate
+sudo site example.com -ssl -wildcard
+
+# Convert to subdomain multisite
+sudo site example.com -multisite-convert=subdomain
+
+# Enable cache
+sudo site example.com -cache=on
+```
+
+### Staging Site Setup
+
+```bash
+# Clone production to staging
+sudo site staging.example.com -clone-from=example.com
+
+# Set environment
+sudo site staging.example.com -env=staging
+
+# Update URLs in database
+sudo site staging.example.com -replace-content -from=example.com -to=staging.example.com
+
+# Get SSL
+sudo site staging.example.com -ssl
+```
+
+### High-Performance WordPress
+
+```bash
+# Create site
+sudo site example.com -wp
+
+# Enable SSL with force redirect
+sudo site example.com -ssl
+sudo site example.com -force-redirect=root
+
+# Configure cache
+sudo site example.com -cache=on -cache-valid=7d
+sudo site example.com -skip-cache=/checkout,/cart,/my-account
+sudo site example.com -wp-cache-plugins
+```
+
+### Reverse Proxy with SSL
+
+```bash
+# Create reverse proxy
+sudo site api.example.com -proxy=http://backend:8080
+
+# Enable SSL
+sudo site api.example.com -ssl
+
+# Enable dedicated cache
+sudo site api.example.com -proxy=http://backend:8080 -dedicated-reverse-proxy
+```
+
+## Subfolder Support
+
+Many operations support the `-subfolder` argument:
+
+```bash
+# Create WordPress in subfolder
+sudo site example.com -wp -subfolder=/blog
+
+# Enable cache for subfolder
+sudo site example.com -cache=on -subfolder=/blog
+
+# Clone subfolder
+sudo site newsite.com -clone-from=example.com -subfolder=/blog
+
+# Delete subfolder
+sudo site example.com -delete -subfolder=/blog
+
+# View subfolder info
+sudo site example.com -info -subfolder=/blog
+```
+
+Supported commands with subfolders:
+- `-wp`, `-php`, `-html`, `-mysql`
+- `-cache`
+- `-delete`
+- `-clone-from`
+- `-replace-content`
+- `-env`
+- `-info`
+- `-multisite-convert`
+
+## Notes
+
+- All commands require `sudo` (root privileges)
+- Site configurations are stored in `/etc/nginx/sites-available/`
+- Website files are located in `/var/www/[domain]/htdocs/`
+- Nginx is automatically reloaded after configuration changes
+- SSL certificates auto-renew via cron job
+- Use `-help` for complete option list
+
+## See Also
+
+- [HTTP Authentication](/cli/httpauth) - Secure sites with HTTP auth
+- [Log Management](/cli/log) - Monitor site logs and debug
+- [Stack Management](/cli/stack) - Manage server components

@@ -1,0 +1,550 @@
+---
+title: PHP Version Management
+description: Install, configure, and switch between different PHP versions with Webinoly
+---
+
+Webinoly provides comprehensive PHP version management, allowing you to install, configure, and switch between PHP versions seamlessly.
+
+## Supported PHP Versions
+
+Webinoly supports the following PHP versions:
+
+<CardGroup cols={3}>
+  <Card title="PHP 7.4" icon="code">
+    Legacy support
+  </Card>
+  <Card title="PHP 8.0" icon="code">
+    Active support
+  </Card>
+  <Card title="PHP 8.1" icon="code">
+    Active support
+  </Card>
+  <Card title="PHP 8.2" icon="code">
+    Active support
+  </Card>
+  <Card title="PHP 8.3" icon="code">
+    Active support
+  </Card>
+  <Card title="PHP 8.4" icon="star">
+    **Default** - Latest
+  </Card>
+</CardGroup>
+
+<Info>
+**PHP 8.4** is set as the default version. PHP 8.5 support is coming soon!
+</Info>
+
+## Installing PHP
+
+### Default Installation
+
+Install PHP with the default version (8.4):
+
+```bash
+sudo stack -php
+```
+
+### Specific Version Installation
+
+Set a specific PHP version before installation:
+
+<CodeGroup>
+```bash Set Version First
+sudo webinoly -config-set=php-ver:8.3
+sudo stack -php
+```
+
+```bash With NGINX
+sudo stack -php=nginx
+```
+</CodeGroup>
+
+<Info>
+If NGINX is not installed, Webinoly will prompt you to install it along with PHP.
+</Info>
+
+## Installed PHP Extensions
+
+Webinoly automatically installs comprehensive PHP extensions:
+
+### Core Extensions
+
+- **php-common** - Common files for PHP
+- **php-cli** - Command-line interpreter
+- **php-fpm** - FastCGI Process Manager
+- **php-opcache** - Zend OPcache (PHP 5.6-8.4)
+
+<Info>
+Starting with PHP 8.5, OPcache is bundled in core and cannot be installed separately.
+</Info>
+
+### Database Extensions
+
+- **php-mysql** - MySQL/MariaDB database support
+
+### Essential Extensions
+
+<Tabs>
+  <Tab title="Web & Network">
+    - **php-curl** - cURL support for HTTP requests
+    - **php-imap** - IMAP email protocol support
+    - **php-soap** - SOAP web services support
+  </Tab>
+  
+  <Tab title="Image Processing">
+    - **php-gd** - GD graphics library
+    - **php-imagick** - ImageMagick for advanced image manipulation
+  </Tab>
+  
+  <Tab title="Data Handling">
+    - **php-mbstring** - Multibyte string functions
+    - **php-xml** - XML manipulation
+    - **php-zip** - ZIP archive support
+    - **php-bcmath** - Arbitrary precision mathematics
+    - **php-intl** - Internationalization functions
+  </Tab>
+  
+  <Tab title="Performance">
+    - **php-msgpack** - MessagePack serializer
+    - **php-igbinary** - Binary serializer
+  </Tab>
+  
+  <Tab title="Utilities">
+    - **php-readline** - Readline interface
+    - **graphviz** - Graph visualization
+    - **ghostscript** - PostScript and PDF interpreter
+    - **php-pear** - PHP Extension and Application Repository
+  </Tab>
+</Tabs>
+
+## Switching PHP Versions
+
+Webinoly makes it easy to switch between PHP versions:
+
+<Steps>
+  <Step title="Check Current Version">
+    ```bash
+    php -v
+    # or
+    sudo stack -info
+    ```
+  </Step>
+  
+  <Step title="Switch to New Version">
+    ```bash
+    sudo stack -php-ver=8.3
+    ```
+    
+    This command will:
+    - Back up your current configuration
+    - Remove the old PHP version
+    - Install the new PHP version
+    - Restore your configuration
+    - Reinstall associated tools
+  </Step>
+  
+  <Step title="Verify New Version">
+    ```bash
+    php -v
+    sudo systemctl status php8.3-fpm
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+**Important**: Switching PHP versions will:
+- Preserve your PHP configuration settings
+- Reinstall phpMyAdmin if installed
+- Reinstall Redis, Memcached, and Postfix if installed
+- May require brief downtime during the switch
+</Warning>
+
+## PHP-FPM Configuration
+
+### Main Configuration File
+
+PHP configuration is located at:
+
+```bash
+/etc/php/8.4/fpm/php.ini
+```
+
+### Key PHP Settings
+
+Webinoly optimizes PHP with the following settings:
+
+<CodeGroup>
+```ini Performance
+max_execution_time = 60
+max_input_vars = 5000
+memory_limit = 128M
+```
+
+```ini Upload Settings
+upload_max_filesize = 100M
+post_max_size = 101M
+max_file_uploads = 20
+```
+
+```ini Security
+expose_php = Off
+allow_url_fopen = On
+session.cookie_httponly = 1
+session.cookie_secure = 1
+session.cookie_samesite = Lax
+session.use_strict_mode = 1
+```
+
+```ini OPcache
+opcache.enable = 1
+opcache.enable_cli = 1
+opcache.memory_consumption = 128
+opcache.interned_strings_buffer = 16
+opcache.max_accelerated_files = 100000
+opcache.max_wasted_percentage = 10
+```
+</CodeGroup>
+
+### Pool Configuration
+
+PHP-FPM pool settings:
+
+```bash
+/etc/php/8.4/fpm/pool.d/www.conf
+```
+
+<CodeGroup>
+```ini Process Manager
+pm = dynamic
+pm.max_children = 10
+pm.start_servers = 3
+pm.min_spare_servers = 3
+pm.max_spare_servers = 6
+pm.max_requests = 1000
+```
+
+```ini Timeouts
+request_terminate_timeout = 60
+```
+
+```ini Status Pages
+pm.status_path = /status
+ping.path = /ping
+```
+
+```ini Socket
+listen = /run/php/php8.4-fpm.sock
+listen.mode = 0600
+```
+</CodeGroup>
+
+<Info>
+Webinoly automatically calculates optimal process manager values based on your server's available RAM.
+</Info>
+
+## PHP Optimization
+
+Webinoly applies several optimizations during installation:
+
+### Memory Management
+
+- Memory limits automatically adjusted based on upload size
+- OPcache sized according to available RAM
+- Process pool optimized for concurrent requests
+
+### Security Hardening
+
+<Steps>
+  <Step title="Disable Functions">
+    Dangerous functions can be disabled:
+    ```bash
+    sudo webinoly -config-set=php-disable-functions:exec,passthru,shell_exec
+    ```
+  </Step>
+  
+  <Step title="Session Security">
+    Sessions are secured with:
+    - Strict mode enabled
+    - HTTP-only cookies
+    - Secure cookie flag
+    - SameSite cookie policy
+  </Step>
+  
+  <Step title="Hidden PHP Version">
+    ```ini
+    expose_php = Off
+    ```
+  </Step>
+</Steps>
+
+### Performance Tuning
+
+<Tabs>
+  <Tab title="Execution Time">
+    Control script execution timeout:
+    ```bash
+    sudo webinoly -config-set=php-max-time:90
+    sudo stack -php -optim
+    ```
+  </Tab>
+  
+  <Tab title="Memory Limit">
+    Adjust PHP memory:
+    ```bash
+    sudo webinoly -config-set=php-max-mem:256
+    sudo stack -php -optim
+    ```
+  </Tab>
+  
+  <Tab title="Upload Size">
+    Change upload limits:
+    ```bash
+    sudo webinoly -config-set=max-mb-uploads:500
+    sudo stack -nginx -optim
+    sudo stack -php -optim
+    ```
+  </Tab>
+  
+  <Tab title="Input Variables">
+    Increase input vars:
+    ```bash
+    sudo webinoly -config-set=php-max-input-vars:10000
+    sudo stack -php -optim
+    ```
+  </Tab>
+</Tabs>
+
+## Managing PHP-FPM
+
+### Service Control
+
+<CodeGroup>
+```bash Start PHP-FPM
+sudo systemctl start php8.4-fpm
+```
+
+```bash Stop PHP-FPM
+sudo systemctl stop php8.4-fpm
+```
+
+```bash Restart PHP-FPM
+sudo systemctl restart php8.4-fpm
+```
+
+```bash Reload Configuration
+sudo systemctl reload php8.4-fpm
+```
+
+```bash Check Status
+sudo systemctl status php8.4-fpm
+```
+</CodeGroup>
+
+### Monitoring PHP-FPM
+
+<Steps>
+  <Step title="Status Page">
+    Access PHP-FPM status:
+    ```bash
+    # Via admin tools site
+    http://your-server-ip:22222/status
+    ```
+  </Step>
+  
+  <Step title="Ping Endpoint">
+    Test PHP-FPM availability:
+    ```bash
+    http://your-server-ip:22222/ping
+    ```
+  </Step>
+  
+  <Step title="PHP Info">
+    View complete PHP configuration:
+    ```bash
+    http://your-server-ip:22222/php/
+    ```
+  </Step>
+</Steps>
+
+## CLI Usage
+
+### PHP Command Line
+
+```bash
+# Check PHP version
+php -v
+
+# Run PHP script
+php script.php
+
+# Interactive shell
+php -a
+
+# Check loaded modules
+php -m
+
+# Check specific configuration
+php -i | grep memory_limit
+```
+
+## Advanced Configuration
+
+### Custom PHP.ini Settings
+
+Modify PHP settings directly:
+
+```bash
+sudo nano /etc/php/8.4/fpm/php.ini
+
+# Test and reload
+sudo php-fpm8.4 -t
+sudo systemctl reload php8.4-fpm
+```
+
+### Disable Functions
+
+For enhanced security:
+
+```ini
+disable_functions = exec,passthru,shell_exec,system,proc_open,popen
+```
+
+### OPcache Settings
+
+<CodeGroup>
+```ini Development
+opcache.validate_timestamps = 1
+opcache.revalidate_freq = 2
+```
+
+```ini Production
+opcache.validate_timestamps = 0
+# Disabled for maximum performance
+```
+</CodeGroup>
+
+### Session Configuration
+
+```ini
+session.gc_maxlifetime = 1440
+session.cookie_lifetime = 0
+session.cookie_samesite = Lax
+```
+
+## Version-Specific Features
+
+### PHP 8.4 Features
+
+- Property hooks
+- Asymmetric visibility
+- Array find functions
+- PDO driver-specific SQL parsers
+- OPcache now bundled in core
+
+### PHP 8.3 Features
+
+- Typed class constants
+- Dynamic class constant fetch
+- `json_validate()` function
+- `Random` extension improvements
+
+### PHP 8.2 Features
+
+- Readonly classes
+- Disjunctive Normal Form (DNF) types
+- `true`, `false`, `null` as standalone types
+- Deprecate dynamic properties
+
+## Removing PHP
+
+### Complete Removal
+
+```bash
+sudo stack -php -purge
+```
+
+<Warning>
+Removing PHP will also remove:
+- All PHP extensions
+- phpMyAdmin (if installed)
+- Postfix (if installed)
+- Redis PHP extension (Redis server remains)
+- Memcached PHP extension (Memcached server remains)
+</Warning>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="PHP-FPM won't start">
+    Check configuration and socket:
+    ```bash
+    sudo php-fpm8.4 -t
+    ls -la /run/php/
+    sudo journalctl -xe
+    ```
+  </Accordion>
+  
+  <Accordion title="Memory limit errors">
+    Increase PHP memory:
+    ```bash
+    sudo nano /etc/php/8.4/fpm/php.ini
+    # Change memory_limit
+    sudo systemctl reload php8.4-fpm
+    ```
+  </Accordion>
+  
+  <Accordion title="Upload size errors">
+    Check both NGINX and PHP limits:
+    ```bash
+    # PHP settings
+    php -i | grep upload_max_filesize
+    php -i | grep post_max_size
+    
+    # NGINX setting
+    grep client_max_body_size /etc/nginx/nginx.conf
+    ```
+  </Accordion>
+  
+  <Accordion title="Version switch failed">
+    Manually complete the process:
+    ```bash
+    sudo stack -php -purge=force
+    sudo webinoly -config-set=php-ver:8.3
+    sudo stack -php
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Latest Stable" icon="arrow-up">
+    Keep PHP updated to receive security patches and performance improvements
+  </Card>
+  <Card title="Monitor Performance" icon="chart-line">
+    Regularly check PHP-FPM status and adjust pool settings as needed
+  </Card>
+  <Card title="Optimize OPcache" icon="gauge-high">
+    Disable timestamp validation in production for maximum performance
+  </Card>
+  <Card title="Secure Configuration" icon="shield">
+    Disable dangerous functions and enable security features
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Install Additional Tools" icon="wrench" href="/stack/additional-tools">
+    Add Redis, Memcached, and more
+  </Card>
+  <Card title="Configure Database" icon="database" href="/stack/mysql-mariadb">
+    Setup MySQL or MariaDB
+  </Card>
+  <Card title="WordPress Setup" icon="wordpress" href="/sites/wordpress">
+    Create WordPress sites with optimized PHP
+  </Card>
+  <Card title="Performance Tuning" icon="rocket" href="/optimization/php-optimization">
+    Advanced PHP optimization techniques
+  </Card>
+</CardGroup>

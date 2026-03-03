@@ -1,0 +1,461 @@
+---
+title: NGINX Configuration
+description: Configure and optimize NGINX web server with Webinoly's powerful management tools
+---
+
+Webinoly provides extensive NGINX configuration and optimization capabilities, managing everything from basic settings to advanced performance tuning.
+
+## Installation Options
+
+### Standalone Installation
+
+Install NGINX independently:
+
+```bash
+sudo stack -nginx
+```
+
+### Version Selection
+
+Choose between NGINX versions:
+
+<CodeGroup>
+```bash Stable Version (Default)
+sudo stack -nginx=stable
+```
+
+```bash Mainline Version
+sudo stack -nginx=mainline
+```
+</CodeGroup>
+
+<Info>
+**Stable vs Mainline:**
+- **Stable**: Production-ready, receives only critical bug fixes
+- **Mainline**: Latest features, receives all bug fixes and updates
+</Info>
+
+## NGINX Optimization
+
+Webinoly automatically optimizes NGINX during installation:
+
+<Steps>
+  <Step title="Performance Configuration">
+    - Worker processes optimized for CPU cores
+    - File descriptor limits adjusted
+    - Connection limits optimized
+    - Keepalive timeout configured
+  </Step>
+  
+  <Step title="Security Hardening">
+    - Server tokens disabled
+    - SSL/TLS protocols configured
+    - DH parameters generated (2048-bit)
+    - Security headers enabled
+  </Step>
+  
+  <Step title="Caching Setup">
+    - FastCGI cache configured
+    - Cache zone created in RAM
+    - Cache size optimized based on available memory
+  </Step>
+  
+  <Step title="Compression">
+    - Gzip compression enabled
+    - Compression levels optimized
+    - MIME types configured
+  </Step>
+</Steps>
+
+## Configuration Files Structure
+
+Webinoly organizes NGINX configuration files systematically:
+
+```
+/etc/nginx/
+├── nginx.conf                 # Main configuration
+├── sites-available/           # Available site configurations
+├── sites-enabled/             # Active site configurations
+├── apps.d/                    # Application-specific configs
+├── common/                    # Shared configuration snippets
+│   ├── locations.conf         # Location blocks
+│   ├── php.conf              # PHP-FPM configuration
+│   ├── headers.conf          # Security headers
+│   ├── wpcommon.conf         # WordPress common rules
+│   └── wpfc.conf             # WordPress FastCGI cache
+└── conf.d/                    # Additional configurations
+    └── fastcgi.conf          # FastCGI settings
+```
+
+## Main Configuration Settings
+
+### Worker Configuration
+
+Webinoly automatically configures worker processes:
+
+```nginx
+worker_processes auto;
+worker_rlimit_nofile 65535;
+worker_connections 2048;
+```
+
+### FastCGI Cache
+
+Cache configuration is optimized based on available RAM:
+
+```nginx
+fastcgi_cache_path /run/nginx-cache 
+  levels=1:2 
+  keys_zone=WORDPRESS:50m 
+  max_size=XXXm 
+  inactive=7d;
+```
+
+<Info>
+Cache size is automatically calculated as 90% of `/run` folder size to ensure optimal performance.
+</Info>
+
+## SSL/TLS Configuration
+
+### DH Parameters
+
+Webinoly generates strong DH parameters during installation:
+
+```bash
+# DH parameters are automatically created at:
+/etc/ssl/dhparam.pem
+```
+
+### kTLS Support
+
+Kernel TLS (kTLS) is enabled on supported systems:
+
+```bash
+# Automatically loaded on Ubuntu 22.04+
+ssl_conf_command Options KTLS;
+```
+
+<Warning>
+kTLS is not supported on Ubuntu 20.04 (Focal) and is automatically disabled during installation.
+</Warning>
+
+## Common Configuration Snippets
+
+### Locations Configuration
+
+Webinoly provides pre-configured location blocks:
+
+<CodeGroup>
+```nginx Deny Extensions
+# Block specific file extensions
+location ~* \.(engine|inc|install|make|module|profile|po|sh|.*sql|theme|twig|tpl(\.php)?|xtmpl|yaml|yml)(~|\.sw[op]|\.bak|\.orig|\.save)?$|\.gitignore|LICENSE|README|CHANGELOG|UPGRADE|AUTHORS|CONTRIBUTORS|PATCHES|VERSION|INSTALL|MAINTAINERS|README\..*$|readme\..*$ {
+    deny all;
+}
+```
+
+```nginx Deny Files
+# Block sensitive files
+location ~ /\.(ht|git|hg|svn|bzr) {
+    deny all;
+}
+```
+
+```nginx Deny Patterns
+# Block common exploit patterns
+location ~ ^/(config|bin|includes?|vendor|wp-content/(upgrade|uploads)/[0-9]+|tmp) {
+    deny all;
+}
+```
+</CodeGroup>
+
+### PHP-FPM Configuration
+
+PHP is configured to use Unix sockets for better performance:
+
+```nginx
+location ~ \.php$ {
+    try_files $uri =404;
+    fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+    fastcgi_index index.php;
+    include fastcgi_params;
+}
+```
+
+## Security Features
+
+### Headers Configuration
+
+Webinoly sets secure headers by default:
+
+```nginx
+add_header X-Content-Type-Options "nosniff" always;
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header X-XSS-Protection "1; mode=block" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+```
+
+### Server Tokens
+
+Server version information is hidden:
+
+```nginx
+server_tokens off;
+```
+
+## Performance Tuning
+
+### Client Settings
+
+Optimized client configurations:
+
+```nginx
+client_max_body_size 100M;
+client_body_buffer_size 128k;
+client_header_buffer_size 1k;
+large_client_header_buffers 4 16k;
+```
+
+### Timeouts
+
+Balanced timeout settings:
+
+```nginx
+client_body_timeout 12;
+client_header_timeout 12;
+keepalive_timeout 15;
+send_timeout 10;
+```
+
+### Buffer Configuration
+
+```nginx
+fastcgi_buffers 16 16k;
+fastcgi_buffer_size 32k;
+fastcgi_read_timeout 60s;
+```
+
+## Managing NGINX
+
+### Service Control
+
+<CodeGroup>
+```bash Start NGINX
+sudo systemctl start nginx
+```
+
+```bash Stop NGINX
+sudo systemctl stop nginx
+```
+
+```bash Restart NGINX
+sudo systemctl restart nginx
+```
+
+```bash Reload Configuration
+sudo systemctl reload nginx
+```
+
+```bash Check Status
+sudo systemctl status nginx
+```
+</CodeGroup>
+
+### Test Configuration
+
+Always test configuration before reloading:
+
+```bash
+sudo nginx -t
+```
+
+## Admin Tools Site
+
+Webinoly creates an admin tools site during installation:
+
+```bash
+# Access at (default port 22222):
+http://your-server-ip:22222
+```
+
+### Available Tools
+
+- **NGINX Status**: `/nginx_status`
+- **PHP-FPM Status**: `/php/`
+- **PHP Info**: `/php/`
+- **Ping**: `/ping`
+
+<Info>
+The admin tools site is protected by HTTP authentication for security.
+</Info>
+
+## Customization Options
+
+### Change Upload Size Limit
+
+```bash
+sudo webinoly -config-set=max-mb-uploads:500
+sudo stack -nginx -optim
+```
+
+### Modify Worker Connections
+
+Worker processes are automatically optimized but can be adjusted:
+
+```bash
+# Edit main configuration
+sudo nano /etc/nginx/nginx.conf
+
+# Test and reload
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+## WordPress Optimization
+
+Webinoly includes WordPress-specific optimizations:
+
+### FastCGI Cache
+
+Automatic caching for WordPress sites:
+
+```nginx
+# Cache configuration
+fastcgi_cache_valid 200 301 302 7d;
+fastcgi_cache_valid 404 1m;
+fastcgi_cache_use_stale error timeout invalid_header http_500;
+```
+
+### XMLRPC Protection
+
+WordPress XMLRPC can be disabled or protected:
+
+```bash
+# Configure XMLRPC access
+sudo webinoly -config-set=xmlrpc:closed
+```
+
+### WP-Admin Limited Access
+
+Protection for WordPress admin area:
+
+```nginx
+limit_req_zone $binary_remote_addr zone=wpadmin:10m rate=1r/s;
+limit_req zone=wpadmin burst=5;
+```
+
+## Monitoring NGINX
+
+### Access Logs
+
+```bash
+# View access logs
+sudo tail -f /var/log/nginx/access.log
+
+# Site-specific logs
+sudo tail -f /var/www/example.com/logs/access.log
+```
+
+### Error Logs
+
+```bash
+# View error logs
+sudo tail -f /var/log/nginx/error.log
+
+# Site-specific errors
+sudo tail -f /var/www/example.com/logs/error.log
+```
+
+## Removing NGINX
+
+### Complete Removal
+
+```bash
+sudo stack -nginx -purge
+```
+
+### Keep Data
+
+Remove NGINX but preserve sites and configuration:
+
+```bash
+sudo stack -nginx=keep-data -purge
+```
+
+<Warning>
+Removing NGINX will also remove all sites and configurations unless you use the `keep-data` option.
+</Warning>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="NGINX won't start">
+    Check configuration syntax and port conflicts:
+    ```bash
+    sudo nginx -t
+    sudo netstat -tlnp | grep :80
+    sudo journalctl -xe
+    ```
+  </Accordion>
+  
+  <Accordion title="502 Bad Gateway error">
+    Usually indicates PHP-FPM issues:
+    ```bash
+    sudo systemctl status php8.4-fpm
+    sudo tail -f /var/log/nginx/error.log
+    ```
+  </Accordion>
+  
+  <Accordion title="Cache not working">
+    Check cache directory permissions:
+    ```bash
+    ls -la /run/nginx-cache
+    sudo systemctl restart nginx
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Configuration
+
+### Custom NGINX Modules
+
+Webinoly uses official NGINX packages. For custom modules, you'll need to compile NGINX from source.
+
+### Rate Limiting
+
+Implement rate limiting for specific locations:
+
+```nginx
+limit_req_zone $binary_remote_addr zone=mylimit:10m rate=10r/s;
+
+location /api/ {
+    limit_req zone=mylimit burst=20;
+}
+```
+
+### Upstream Configuration
+
+Configure load balancing:
+
+```nginx
+upstream backend {
+    server backend1.example.com;
+    server backend2.example.com;
+    keepalive 32;
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="PHP Configuration" icon="code" href="/stack/php-versions">
+    Configure PHP-FPM and manage versions
+  </Card>
+  <Card title="SSL Certificates" icon="lock" href="/ssl/lets-encrypt">
+    Enable HTTPS with Let's Encrypt
+  </Card>
+  <Card title="Create Sites" icon="globe" href="/sites/creating-sites">
+    Start creating your first website
+  </Card>
+  <Card title="Performance Tuning" icon="gauge" href="/optimization/performance">
+    Advanced optimization techniques
+  </Card>
+</CardGroup>
