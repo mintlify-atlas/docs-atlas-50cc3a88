@@ -1,0 +1,132 @@
+{
+  "projectType": "cli-tool",
+  "projectName": "Webinoly",
+  "projectDescription": "Production NGINX server manager for Ubuntu with secure defaults, terminal-first interface, and performance optimization.",
+  "theme": "aspen",
+  "primaryColor": "#00A3E0",
+  "lightColor": "#5BC8F2",
+  "darkColor": "#0077A8",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "quickstart",
+              "requirements"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/lemp-stack",
+              "concepts/fastcgi-cache",
+              "concepts/security-defaults",
+              "concepts/configuration-file"
+            ]
+          },
+          {
+            "group": "Managing Sites",
+            "pages": [
+              "sites/creating-sites",
+              "sites/wordpress-sites",
+              "sites/reverse-proxy",
+              "sites/ssl-certificates",
+              "sites/site-management"
+            ]
+          },
+          {
+            "group": "Stack Management",
+            "pages": [
+              "stack/installing-components",
+              "stack/nginx-configuration",
+              "stack/php-versions",
+              "stack/mysql-mariadb",
+              "stack/additional-tools"
+            ]
+          },
+          {
+            "group": "Advanced Features",
+            "pages": [
+              "advanced/caching",
+              "advanced/backups",
+              "advanced/monitoring-logs",
+              "advanced/http-authentication",
+              "advanced/custom-headers",
+              "advanced/smtp-configuration"
+            ]
+          },
+          {
+            "group": "Operations",
+            "pages": [
+              "operations/server-management",
+              "operations/troubleshooting",
+              "operations/updates",
+              "operations/uninstall"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI Reference",
+        "groups": [
+          {
+            "group": "Commands",
+            "pages": [
+              "cli/overview",
+              "cli/webinoly",
+              "cli/site",
+              "cli/stack",
+              "cli/httpauth",
+              "cli/log"
+            ]
+          },
+          {
+            "group": "Options Reference",
+            "pages": [
+              "cli/site-options",
+              "cli/stack-options",
+              "cli/webinoly-options"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Resources",
+        "groups": [
+          {
+            "group": "Additional Resources",
+            "pages": [
+              "resources/faq",
+              "resources/examples",
+              "resources/migration-guide",
+              "resources/contributing",
+              "resources/changelog"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Complete LEMP stack (Ubuntu + NGINX + MariaDB/MySQL + PHP)",
+    "FastCGI Cache and Redis Object Cache for performance",
+    "Free SSL certificates via Let's Encrypt with HTTP/3 support",
+    "WordPress-optimized with subfolder install and multisite support",
+    "Reverse proxy for Java, Node, React, Vue applications",
+    "Built-in backup and migration tools",
+    "Real-time log monitoring",
+    "HTTP authentication and security hardening"
+  ],
+  "publicApiSurface": [
+    "webinoly",
+    "site",
+    "stack",
+    "httpauth",
+    "log"
+  ]
+}
